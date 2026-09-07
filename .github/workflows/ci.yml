@@ -16,6 +16,7 @@ concurrency:
 env:
   GRADIO_ANALYTICS_ENABLED: "False"
   DO_NOT_TRACK: "1"
+  PYTHONUTF8: "1"
 
 jobs:
   test:
@@ -86,9 +87,40 @@ jobs:
       - name: Verify wheel imports and isolated sdist tests (60 seconds per subprocess)
         run: uv run --no-sync python scripts/verify_distributions.py --dist-dir dist
 
+  web:
+    name: Private web client
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "24.18.1"
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+        with:
+          version: "0.12.5"
+          enable-cache: false
+      - name: Install locked Python protocol dependencies
+        run: uv sync --locked --python 3.14
+      - name: Install locked frontend dependencies
+        run: npm --prefix web ci
+      - name: Check generated API contract
+        run: |
+          uv run --no-sync python scripts/export_openapi.py --check
+          npm --prefix web run generate:api
+          git diff --exit-code -- web/openapi.json web/src/api.generated.ts
+      - name: Browser behavior unit tests (hard limit of 60 seconds)
+        run: npm --prefix web test
+      - name: Typecheck and build static shell
+        run: npm --prefix web run build
+      - name: Audit frontend dependencies
+        run: npm --prefix web audit --audit-level=moderate
+
   required:
     name: Required checks
-    needs: [test, dependencies, package]
+    needs: [test, dependencies, package, web]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 2
@@ -98,4 +130,5 @@ jobs:
           TEST_RESULT: ${{ needs.test.result }}
           AUDIT_RESULT: ${{ needs.dependencies.result }}
           PACKAGE_RESULT: ${{ needs.package.result }}
-        run: test "$TEST_RESULT" = success && test "$AUDIT_RESULT" = success && test "$PACKAGE_RESULT" = success
+          WEB_RESULT: ${{ needs.web.result }}
+        run: test "$TEST_RESULT" = success && test "$AUDIT_RESULT" = success && test "$PACKAGE_RESULT" = success && test "$WEB_RESULT" = success

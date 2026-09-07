@@ -14,6 +14,9 @@ from pathlib import Path, PurePosixPath
 RUNTIME_MODULES = (
     "agent", "smoke_model", "yijing.__init__", "yijing.paths", "yijing.glossary",
     "yijing.translation", "yijing.workflow", "yijing.service",
+    "yijing_api.__init__", "yijing_api.app", "yijing_api.auth", "yijing_api.config",
+    "yijing_api.cli", "yijing_api.errors", "yijing_api.jobs", "yijing_api.models",
+    "yijing_api.worker", "yijing_api.static",
 )
 RUNTIME_PATHS = {module.replace(".", "/") + ".py" for module in RUNTIME_MODULES}
 REQUIRED_SOURCE = {
@@ -22,6 +25,7 @@ REQUIRED_SOURCE = {
     "README.md", "PRIVACY.md", "SECURITY.md", "THREAT_MODEL.md", "CONTRIBUTING.md",
     ".env.example", ".python-version", "MANIFEST.in",
     "scripts/audit_publication.py", "scripts/verify_distributions.py",
+    "scripts/export_openapi.py",
     "data/glossary.example.json", "docs/ROADMAP.md",
     "tests/test_publication.py", "tests/test_smoke_model.py",
 }

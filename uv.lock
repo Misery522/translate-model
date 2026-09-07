@@ -2297,9 +2297,10 @@ wheels = [
 
 [[package]]
 name = "yijing-translate"
-version = "0.2.0a1"
+version = "0.3.0a1"
 source = { editable = "." }
 dependencies = [
+    { name = "fastapi" },
     { name = "gradio" },
     { name = "langchain" },
     { name = "langchain-ollama" },
@@ -2307,6 +2308,7 @@ dependencies = [
     { name = "langsmith" },
     { name = "platformdirs" },
     { name = "pydantic" },
+    { name = "uvicorn" },
 ]
 
 [package.dev-dependencies]
@@ -2320,6 +2322,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "fastapi", specifier = "==0.141.1" },
     { name = "gradio", specifier = "==6.26.0" },
     { name = "langchain", specifier = "==1.3.18" },
     { name = "langchain-ollama", specifier = "==1.1.0" },
@@ -2327,6 +2330,7 @@ requires-dist = [
     { name = "langsmith", specifier = ">=0.12.2,<0.13" },
     { name = "platformdirs", specifier = ">=4.3,<5" },
     { name = "pydantic", specifier = ">=2.12,<3" },
+    { name = "uvicorn", specifier = "==0.52.4" },
 ]
 
 [package.metadata.requires-dev]
