@@ -25,10 +25,19 @@
 - 发布扫描针对 Git 对象快照工作，拒绝模型、私人数据、凭据和不合规文本编码。
   图像与字体的二进制内容仍需人工审查；该工具不保证识别所有秘密。
 
-## 仍需远端或人工验收
+## 远端归档门禁
 
-- 本机 Git 授权完成后推送候选分支，创建 PR 并通过 GitHub Actions。
-- CI 的 Windows/Linux 与 Python 3.11–3.14 结果以实际远端运行结果为准。
-- 启用 main 保护，确认 `Required checks` 门禁后合并，再创建基线标签与发行说明。
+- 基线提交 `9acbe50` 已推送，通过 [PR #1](https://github.com/Misery522/translate-model/pull/1)
+  进入归档流程；首轮 [GitHub Actions](https://github.com/Misery522/translate-model/actions/runs/34111165333)
+  的 12 项检查全部通过：Windows/Linux × Python 3.11–3.14、依赖审计、两平台打包及汇总。
+- `main` 已要求 PR 和 GitHub Actions 来源的 `Required checks`，分支必须与 main 保持同步，
+  规则适用于管理员；禁止强推、删除，要求线性历史及解决审查对话。
+- 当前按单人维护配置，审批人数为 0，不要求 Code Owner 或最后推送者之外的审批，
+  避免维护者无法批准自己 PR 的死锁。
+- 后续提交仍须通过上述检查；最终合并和发行状态以 PR 与 GitHub Releases 为准，
+  不用一次成功记录代替后续提交的测试。
+
+## 仍需人工或后续阶段验收
+
 - 浏览器完整交互与其他机器的真实模型验收不能由本次 HTTP 启动检查替代。
 - API、PWA、宠物、语音及 Android 依照 ROADMAP 分阶段实施，不列入本次已完成项。
