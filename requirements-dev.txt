@@ -1,0 +1,4 @@
+# Development dependencies are maintained in pyproject.toml (uv sync --group dev).
+-r requirements.txt
+pytest>=8.3,<10
+ruff>=0.12,<1
