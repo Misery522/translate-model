@@ -12,11 +12,12 @@ import zipfile
 from pathlib import Path, PurePosixPath
 
 RUNTIME_MODULES = (
-    "agent", "app_paths", "glossary_store", "smoke_model",
-    "translation_agent", "translation_workflow",
+    "agent", "smoke_model", "yijing.__init__", "yijing.paths", "yijing.glossary",
+    "yijing.translation", "yijing.workflow", "yijing.service",
 )
+RUNTIME_PATHS = {module.replace(".", "/") + ".py" for module in RUNTIME_MODULES}
 REQUIRED_SOURCE = {
-    *(f"{module}.py" for module in RUNTIME_MODULES),
+    *RUNTIME_PATHS,
     "pyproject.toml", "uv.lock", "LICENSE", "THIRD_PARTY_NOTICES.md",
     "README.md", "PRIVACY.md", "SECURITY.md", "THREAT_MODEL.md", "CONTRIBUTING.md",
     ".env.example", ".python-version", "MANIFEST.in",
@@ -35,7 +36,7 @@ def validate_archive_paths(names: list[str]) -> None:
 
 def validate_wheel_members(names: list[str]) -> None:
     validate_archive_paths(names)
-    missing = {f"{module}.py" for module in RUNTIME_MODULES} - set(names)
+    missing = RUNTIME_PATHS - set(names)
     for license_name in ("LICENSE", "THIRD_PARTY_NOTICES.md"):
         if not any(name.endswith(f".dist-info/licenses/{license_name}") for name in names):
             missing.add(license_name)

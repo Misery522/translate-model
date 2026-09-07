@@ -12,7 +12,7 @@ def data_directory(module_path: Path | None = None) -> Path:
     configured = os.getenv("YIJING_DATA_DIR", "").strip()
     if configured:
         return Path(configured).expanduser().resolve()
-    root = (module_path or Path(__file__)).resolve().parent
+    root = (module_path or Path(__file__)).resolve().parent.parent
     if (root / "pyproject.toml").is_file():
         return root / "data"
     # 安装后的 wheel 不能把个人词库写进 site-packages。

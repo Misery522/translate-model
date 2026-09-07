@@ -19,15 +19,16 @@ from uuid import uuid4
 import gradio as gr
 from pydantic import ValidationError
 
-from app_paths import data_directory
-from glossary_store import GlossaryError, GlossaryStore
-from translation_agent import (
+from yijing.glossary import GlossaryError, GlossaryStore
+from yijing.paths import data_directory
+from yijing.service import OllamaProvider, TranslationService
+from yijing.translation import (
     DEFAULT_BASE_URL,
     TranslationError,
     Translator,
     validate_local_ollama_base_url,
 )
-from translation_workflow import AgentRequest, AgentResult, TranslationWorkflow
+from yijing.workflow import AgentRequest, AgentResult
 
 APP_TITLE = "译境 · 本地智能翻译"
 BASE_DIR = Path(__file__).resolve().parent
@@ -227,7 +228,7 @@ APP_CSS = """
 
 glossary_store = GlossaryStore(GLOSSARY_PATH)
 translator = Translator(model_name=MODEL_NAME, base_url=OLLAMA_BASE_URL)
-workflow = TranslationWorkflow(translator=translator, glossary_store=glossary_store)
+service = TranslationService(OllamaProvider(translator=translator), glossary_store)
 
 
 @dataclass(frozen=True, slots=True)
@@ -375,7 +376,7 @@ def _model_status() -> str:
 
 def _load_glossary_rows() -> tuple[Any, str]:
     try:
-        rows = glossary_store.load_rows()
+        rows = glossary_store.to_rows(service.list_glossary())
     except GlossaryError as exc:
         message = _friendly_error(exc)
         _warning(message, title="词库载入失败")
@@ -389,8 +390,8 @@ def _load_glossary_rows() -> tuple[Any, str]:
 
 def _save_glossary_rows(rows: Any) -> tuple[Any, str]:
     try:
-        glossary_store.save_rows(rows or [])
-        normalized_rows = glossary_store.load_rows()
+        document = glossary_store.from_rows(rows or [])
+        normalized_rows = glossary_store.to_rows(service.save_glossary(document))
     except GlossaryError as exc:
         message = _friendly_error(exc)
         _warning(message, title="词库保存失败")
@@ -522,7 +523,7 @@ def _execute_workflow(pending: PendingAgentRequest) -> WorkflowOutcome:
             domain=pending.domain,
             task_mode=pending.task_mode,
         )
-        result = workflow.run(request)
+        result = service.run(request)
     except ValidationError as exc:
         return WorkflowOutcome(
             pending=pending,
@@ -608,7 +609,7 @@ def build_app() -> gr.Blocks:
     """创建应用但不启动服务器，便于自动化测试。"""
 
     try:
-        initial_rows = glossary_store.load_rows()
+        initial_rows = glossary_store.to_rows(service.list_glossary())
         initial_glossary_status = f"已载入 {len(initial_rows)} 条本地术语"
     except GlossaryError as exc:
         initial_rows = []

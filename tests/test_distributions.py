@@ -4,7 +4,7 @@ import pytest
 
 from scripts.verify_distributions import (
     REQUIRED_SOURCE,
-    RUNTIME_MODULES,
+    RUNTIME_PATHS,
     validate_archive_paths,
     validate_source_members,
     validate_wheel_members,
@@ -31,7 +31,7 @@ def test_complete_source_archive_has_one_safe_root():
 
 
 def test_wheel_requires_runtime_paths_and_license():
-    names = [f"{module}.py" for module in RUNTIME_MODULES]
+    names = list(RUNTIME_PATHS)
     names.append("release.dist-info/licenses/THIRD_PARTY_NOTICES.md")
     with pytest.raises(ValueError, match="LICENSE"):
         validate_wheel_members(names)

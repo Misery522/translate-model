@@ -21,7 +21,7 @@ from langgraph.graph import END, START, StateGraph
 from langsmith import tracing_context
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from translation_agent import (
+from yijing.translation import (
     DEFAULT_BASE_URL,
     DEFAULT_MODEL,
     DEFAULT_TIMEOUT_SECONDS,

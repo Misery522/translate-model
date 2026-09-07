@@ -6,8 +6,8 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-import glossary_store
-from glossary_store import (
+from yijing import glossary as glossary_store
+from yijing.glossary import (
     GlossaryConflictError,
     GlossaryDocument,
     GlossaryEntry,

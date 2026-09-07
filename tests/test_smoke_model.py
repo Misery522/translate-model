@@ -9,7 +9,7 @@ from langsmith import tracing_context
 from langsmith.utils import tracing_is_enabled
 
 import smoke_model
-from glossary_store import GlossaryDocument
+from yijing.glossary import GlossaryDocument
 
 # 仅在测试运行时构造合成地址，避免源码看起来像静态凭据。
 SYNTHETIC_CREDENTIAL_URL = "".join(("http://", "user:", "private-secret", "@localhost:11434"))

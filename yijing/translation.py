@@ -24,7 +24,7 @@ from langsmith import tracing_context
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 try:
-    from glossary_store import GlossaryEntry
+    from yijing.glossary import GlossaryEntry
 except ImportError:  # pragma: no cover - 仅方便单独导入核心模块
     GlossaryEntry = Any  # type: ignore[misc,assignment]
 

@@ -10,16 +10,15 @@ import gradio as gr
 import pytest
 
 import agent
-from glossary_store import GlossaryValidationError
-from translation_agent import AppliedTerm, TranslationError
-from translation_workflow import AgentResult, AnnotationItem
+from yijing.glossary import GlossaryDocument, GlossaryValidationError
+from yijing.translation import AppliedTerm, TranslationError
+from yijing.workflow import AgentResult, AnnotationItem
 
 
 def test_build_app_constructs_without_starting_server(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    fake_store = SimpleNamespace(load_rows=lambda: [])
-    monkeypatch.setattr(agent, "glossary_store", fake_store)
+    monkeypatch.setattr(agent.service, "list_glossary", lambda: GlossaryDocument())
 
     app = agent.build_app()
 
@@ -30,7 +29,7 @@ def test_build_app_constructs_without_starting_server(
 def test_build_app_has_valid_queue_settings(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(agent.glossary_store, "load_rows", lambda: [])
+    monkeypatch.setattr(agent.service, "list_glossary", lambda: GlossaryDocument())
 
     app = agent.build_app()
 
@@ -405,7 +404,7 @@ def test_workflow_request_and_result_are_rendered_without_gradio_error(
             captured["request"] = request
             return _fake_agent_result()
 
-    monkeypatch.setattr(agent, "workflow", FakeWorkflow())
+    monkeypatch.setattr(agent, "service", FakeWorkflow())
     pending = _begin_test_request("successful-session")
 
     outcome = agent._execute_workflow(pending)
@@ -432,14 +431,14 @@ def test_workflow_request_and_result_are_rendered_without_gradio_error(
 def test_glossary_save_error_is_rendered_inline_without_failing_outputs(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    class FailingStore:
-        def save_rows(self, rows: object) -> None:
+    class FailingService:
+        def save_glossary(self, document: object) -> None:
             raise GlossaryValidationError("第 2 行的目标语言不能为空")
 
-        def load_rows(self) -> list[list[object]]:
+        def list_glossary(self) -> GlossaryDocument:
             raise AssertionError("保存失败后不得重新加载")
 
-    monkeypatch.setattr(agent, "glossary_store", FailingStore())
+    monkeypatch.setattr(agent, "service", FailingService())
     notifications: list[tuple[str, str]] = []
     monkeypatch.setattr(
         agent.gr,
@@ -447,7 +446,7 @@ def test_glossary_save_error_is_rendered_inline_without_failing_outputs(
         lambda text, *, title: notifications.append((text, title)),
     )
 
-    output = agent._save_glossary_rows([["API", "接口", "", "all", False]])
+    output = agent._save_glossary_rows([["API", "接口", "zh-Hans", "all", False]])
 
     assert output[0] == gr.skip()
     assert "第 2 行的目标语言不能为空" in output[1]
@@ -459,7 +458,7 @@ def test_glossary_save_error_is_rendered_inline_without_failing_outputs(
 def test_character_count_uses_immediate_unicode_client_callback(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(agent.glossary_store, "load_rows", lambda: [])
+    monkeypatch.setattr(agent.service, "list_glossary", lambda: GlossaryDocument())
 
     app = agent.build_app()
     dependencies = app.config["dependencies"]
@@ -580,7 +579,7 @@ def test_expected_workflow_error_is_rendered_as_normal_inline_state(
             raise TranslationError("FORMAT_CHANGED", message, retryable=True)
 
     notifications: list[tuple[str, str]] = []
-    monkeypatch.setattr(agent, "workflow", FailingWorkflow())
+    monkeypatch.setattr(agent, "service", FailingWorkflow())
     monkeypatch.setattr(
         agent.gr,
         "Warning",
@@ -644,7 +643,7 @@ def test_new_submission_skips_obsolete_work_before_model_call(
         def run(self, _request: object) -> None:
             raise AssertionError("旧请求不得调用模型")
 
-    monkeypatch.setattr(agent, "workflow", MustNotRunWorkflow())
+    monkeypatch.setattr(agent, "service", MustNotRunWorkflow())
     outcome = agent._execute_workflow(obsolete)
 
     assert outcome.result is None
@@ -659,7 +658,7 @@ def test_unexpected_backend_error_is_hidden_and_does_not_raise_gradio_error(
         def run(self, _request: object) -> None:
             raise RuntimeError("backend leaked original: highly-sensitive-text")
 
-    monkeypatch.setattr(agent, "workflow", FailingWorkflow())
+    monkeypatch.setattr(agent, "service", FailingWorkflow())
     pending = _begin_test_request("unexpected-error-session")
 
     outcome = agent._execute_workflow(pending)
