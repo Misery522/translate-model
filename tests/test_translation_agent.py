@@ -10,7 +10,7 @@ from langsmith import tracing_context
 from langsmith.utils import tracing_is_enabled
 from pydantic import ValidationError
 
-from translation_agent import (
+from yijing.translation import (
     DEFAULT_BASE_URL,
     DEFAULT_KEEP_ALIVE,
     MAX_INPUT_CHARS,

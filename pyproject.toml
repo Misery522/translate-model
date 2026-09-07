@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "yijing-translate"
-version = "0.1.0a1"
+version = "0.2.0a1"
 description = "A local-only controlled translation agent with Ollama and Gradio"
 readme = "README.md"
 requires-python = ">=3.11,<3.15"
@@ -34,7 +34,10 @@ dev = ["pytest>=8.3,<10", "ruff>=0.12,<1"]
 audit = ["pip-audit>=2.9,<3"]
 
 [tool.setuptools]
-py-modules = ["agent", "app_paths", "translation_agent", "translation_workflow", "glossary_store", "smoke_model"]
+py-modules = ["agent", "smoke_model"]
+
+[tool.setuptools.packages.find]
+include = ["yijing"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

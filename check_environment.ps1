@@ -64,7 +64,7 @@ import sys
 sys.path.insert(0, sys.argv[1])
 try:
     import httpx
-    from translation_agent import validate_local_ollama_base_url
+    from yijing.translation import validate_local_ollama_base_url
     address = validate_local_ollama_base_url(sys.argv[2])
 except Exception:
     print(json.dumps({"valid_address": False, "online": False, "model_present": False}))

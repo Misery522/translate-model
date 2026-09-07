@@ -7,6 +7,8 @@
 仓库地址：[Misery522/translate-model](https://github.com/Misery522/translate-model)。
 项目处于早期版本；桌面宠物、手机客户端、语音和独立 API 尚未实现，见
 [开发路线](docs/ROADMAP.md)。
+核心已独立为 `yijing` 包，Gradio 经统一服务调用既有翻译工作流，见
+[核心服务架构](docs/ARCHITECTURE.md)。
 
 ## 当前能力
 

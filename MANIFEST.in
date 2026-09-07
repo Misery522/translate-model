@@ -8,6 +8,7 @@ include check_environment.ps1
 include data/glossary.example.json
 include scripts/audit_publication.py scripts/verify_distributions.py
 recursive-include tests *.py
+recursive-include yijing *.py
 recursive-include docs *.md
 recursive-include .github *.yml *.md
 global-exclude __pycache__ *.py[cod] *.log

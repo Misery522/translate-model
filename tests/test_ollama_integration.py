@@ -5,9 +5,10 @@ import os
 
 import pytest
 
-from glossary_store import GlossaryEntry
-from translation_agent import TranslationRequest, Translator
-from translation_workflow import AgentRequest, TranslationWorkflow
+from yijing.glossary import GlossaryEntry
+from yijing.service import create_default_service
+from yijing.translation import TranslationRequest, Translator
+from yijing.workflow import AgentRequest, TranslationWorkflow
 
 MODEL_NAME = "qwen3.5:4b"
 
@@ -18,6 +19,17 @@ pytestmark = [
         reason="set OLLAMA_INTEGRATION=1 to run tests against local Ollama",
     ),
 ]
+
+
+def test_service_translates_with_local_provider(tmp_path) -> None:
+    service = create_default_service(glossary_path=tmp_path / "glossary.json")
+    result = service.run(AgentRequest(
+        text="Please save your changes before closing the window.",
+        target_language="zh-Hans", task_mode="translate",
+    ))
+    assert result.route == "translate_text"
+    assert result.translated_text
+    assert _han_character_count(result.translated_text) >= 8
 
 
 def _han_character_count(text: str) -> int:

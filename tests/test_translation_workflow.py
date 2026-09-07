@@ -12,9 +12,9 @@ from langsmith import tracing_context
 from langsmith.utils import tracing_is_enabled
 from pydantic import ValidationError
 
-import translation_workflow
-from translation_agent import AppliedTerm, TranslationError, TranslationResult
-from translation_workflow import (
+from yijing import workflow as translation_workflow
+from yijing.translation import AppliedTerm, TranslationError, TranslationResult
+from yijing.workflow import (
     AgentRequest,
     AgentResult,
     AnnotationItem,

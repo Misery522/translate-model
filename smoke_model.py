@@ -15,7 +15,7 @@ from typing import Any
 from langchain_ollama import ChatOllama
 from langsmith import tracing_context
 
-from translation_agent import (
+from yijing.translation import (
     DEFAULT_BASE_URL,
     DEFAULT_MODEL,
     TranslationError,
