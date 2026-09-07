@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "source": "large language model",
+      "target": "大语言模型",
+      "target_language": "zh-Hans",
+      "domain": "technology",
+      "case_sensitive": false
+    }
+  ]
+}

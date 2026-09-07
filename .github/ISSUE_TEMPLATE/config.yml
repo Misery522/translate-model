@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 安全报告政策
+    url: https://github.com/Misery522/translate-model/blob/main/SECURITY.md
+    about: 漏洞细节不要提交到公开 Issue。
+  - name: 使用与支持说明
+    url: https://github.com/Misery522/translate-model/blob/main/SUPPORT.md
+    about: 提交前查看常见检查与报告要求。

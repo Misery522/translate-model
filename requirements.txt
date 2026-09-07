@@ -1,0 +1,2 @@
+# Compatibility entry point; reproducible installs use uv sync --locked.
+.
