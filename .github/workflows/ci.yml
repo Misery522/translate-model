@@ -113,6 +113,8 @@ jobs:
           git diff --exit-code -- web/openapi.json web/src/api.generated.ts
       - name: Browser behavior unit tests (hard limit of 60 seconds)
         run: npm --prefix web test
+      - name: Check frontend source formatting
+        run: npm --prefix web run format:check
       - name: Typecheck and build static shell
         run: npm --prefix web run build
       - name: Audit frontend dependencies

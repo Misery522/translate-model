@@ -13,6 +13,7 @@ recursive-include yijing_api *.py
 include scripts/export_openapi.py
 include web/package.json web/package-lock.json web/openapi.json web/tsconfig.json
 include web/vite.config.ts web/index.html web/README.md
+include web/.prettierrc.json web/.prettierignore
 recursive-include web/src *.ts *.tsx *.js *.css
 recursive-include web/public *.svg *.webmanifest
 recursive-include web/scripts *.mjs

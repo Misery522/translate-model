@@ -24,14 +24,21 @@ function staticShell() {
       writeFileSync(resolve(output, 'THIRD_PARTY_LICENSES.txt'), `${notices.join('\n')}\n`);
       const assets = readdirSync(output, { recursive: true, encoding: 'utf8' })
         .map((path) => path.replaceAll('\\', '/'))
-        .filter((path) => /^(index\.html|pet-icon\.svg|manifest\.webmanifest|assets\/[^/]+\.(js|css|svg|woff2))$/.test(path))
+        .filter((path) =>
+          /^(index\.html|pet-icon\.svg|manifest\.webmanifest|assets\/[^/]+\.(js|css|svg|woff2))$/.test(
+            path,
+          ),
+        )
         .sort();
       const hash = createHash('sha256');
       for (const asset of assets) hash.update(asset).update(readFileSync(resolve(output, asset)));
       const template = readFileSync(resolve(root, 'src/service-worker.js'), 'utf8');
-      writeFileSync(resolve(output, 'sw.js'), template
-        .replace('/*__ASSETS__*/ []', JSON.stringify(assets.map((path) => `/${path}`)))
-        .replace('__BUILD_HASH__', hash.digest('hex').slice(0, 16)));
+      writeFileSync(
+        resolve(output, 'sw.js'),
+        template
+          .replace('/*__ASSETS__*/ []', JSON.stringify(assets.map((path) => `/${path}`)))
+          .replace('__BUILD_HASH__', hash.digest('hex').slice(0, 16)),
+      );
     },
   };
 }
