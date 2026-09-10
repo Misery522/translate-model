@@ -13,7 +13,7 @@ license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
 authors = [{name = "Misery522 and contributors"}]
 dependencies = [
   "gradio==6.26.0",
-  "langchain==1.3.18",
+  "langchain==1.4.0",
   "langchain-ollama==1.1.0",
   "langgraph==1.2.11",
   "langsmith>=0.12.2,<0.13",
