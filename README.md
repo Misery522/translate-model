@@ -5,8 +5,8 @@
 模型只能选择预设处理路径，不能执行输入中的命令或代码。
 
 仓库地址：[Misery522/translate-model](https://github.com/Misery522/translate-model)。
-项目处于早期版本；桌面宠物、手机客户端、语音和独立 API 尚未实现，见
-[开发路线](docs/ROADMAP.md)。
+项目处于早期版本。除原有 Gradio 界面外，现提供私人 API 与会话式网页；
+原生桌面宠物、手机客户端和语音仍按[开发路线](docs/ROADMAP.md)分阶段验证。
 核心已独立为 `yijing` 包，Gradio 经统一服务调用既有翻译工作流，见
 [核心服务架构](docs/ARCHITECTURE.md)。
 
@@ -60,7 +60,9 @@ uv run python agent.py
 ```
 
 不要将 `.venv` 从其他电脑复制过来；每台设备应从锁文件创建自己的环境。
-手机暂时不能直接访问当前界面，跨设备使用将由后续独立 API 和客户端实现。
+需要会话式网页或私人手机访问时，按照[私人部署说明](docs/PRIVATE_DEPLOYMENT.md)
+构建 `web/` 并运行 `uv run yijing-api --static-dir web/dist`。
+私人手机访问还需要用户配置 HTTPS 与设备访问控制；不是打开 `share=True`。
 
 ## 配置
 

@@ -12,10 +12,20 @@
 | LangSmith SDK | 以 uv.lock 为准 | MIT | https://github.com/langchain-ai/langsmith-sdk |
 | Pydantic | 以 uv.lock 为准 | MIT | https://github.com/pydantic/pydantic |
 | platformdirs | 以 uv.lock 为准 | MIT | https://github.com/tox-dev/platformdirs |
+| FastAPI | 0.141.1 | MIT | https://github.com/fastapi/fastapi |
+| Uvicorn | 0.52.4 | BSD-3-Clause | https://github.com/encode/uvicorn |
 
 许可标识已核对安装包中的 `License-Expression` 或 `License` 元数据；完整条文请查阅
 对应版本安装包的 `licenses` 目录和上游 LICENSE。完整的传递依赖版本、来源及哈希
 记录在 `uv.lock`；发布验证生成 CycloneDX SBOM，避免把本表误认为全部传递依赖清单。
+
+## 会话式网页
+
+`web/package-lock.json` 固定前端依赖。React 与 react-dom 为 19.2.8，均采用 MIT；
+生产构建还包含它们使用的 scheduler。构建流程从安装包中收集上述运行时的完整
+LICENSE 文本，生成 `web/dist/THIRD_PARTY_LICENSES.txt`；分发构建产物时必须一并保留。
+前端使用系统字体和项目原创 SVG 角色，没有下载第三方宠物图片或网络字体。
+Vite、TypeScript、Vitest 等为构建和测试工具，不等同于已内嵌的运行时列表。
 
 ## 外部运行时及模型
 

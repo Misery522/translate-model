@@ -1,0 +1,13 @@
+{
+    "id": "/",
+    "name": "译境 · 随手翻译",
+    "short_name": "译境",
+    "description": "连接自己的电脑，在熟悉的语言之间自在表达。",
+    "lang": "zh-CN",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "background_color": "#f3f5ef",
+    "theme_color": "#f3f5ef",
+    "icons": [{ "src": "/pet-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
