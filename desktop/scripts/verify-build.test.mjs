@@ -80,3 +80,23 @@ test('Rust 测试计时器只终止自己创建的进程树', () => {
   assert.match(runner, /\$testProcess\.Kill\(\$true\)/);
   assert.ok(!runner.includes('Get-Process') && !runner.includes('Stop-Process'));
 });
+
+test('编译与严格安全审计独立运行且共同决定最终门禁', () => {
+  const workflow = readWorkflow();
+  const sections = workflow.match(/^  windows:([\s\S]+?)^  audit:([\s\S]+?)^  required:([\s\S]+)$/m);
+  assert.ok(sections);
+  const [, build, audit, required] = sections;
+  assert.match(build, /cargo test --locked --no-run/);
+  assert.ok(!build.includes('auditExecutable') && !/^    needs:/m.test(build));
+  assert.match(audit, /git ls-files --error-unmatch -- desktop\/src-tauri\/Cargo\.lock/);
+  assert.match(audit, /Audit requires a reviewed and committed Cargo\.lock/);
+  assert.match(audit, /audit --file \$lockfile --deny warnings/);
+  assert.ok(!/^    needs:/m.test(audit));
+  assert.match(required, /needs: \[windows, audit\]/);
+  assert.match(required, /BUILD_RESULT: \$\{\{ needs\.windows\.result \}\}/);
+  assert.match(required, /AUDIT_RESULT: \$\{\{ needs\.audit\.result \}\}/);
+  assert.match(required, /test "\$BUILD_RESULT" = success/);
+  assert.match(required, /test "\$AUDIT_RESULT" = success/);
+  assert.match(required, /test "\$COMMITTED_LOCK" = true/);
+  assert.ok(!workflow.includes('continue-on-error'));
+});
