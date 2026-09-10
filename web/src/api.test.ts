@@ -26,13 +26,11 @@ describe('任务响应绑定', () => {
   it.each(['session_id', 'client_request_id'] as const)(
     '提交响应的 %s 不匹配时拒绝绑定到另一轮',
     async (field) => {
-      const fetcher = vi
-        .fn()
-        .mockResolvedValue(
-          new Response(JSON.stringify({ ...runningJob, [field]: 'other-request' }), {
-            status: 202,
-          }),
-        );
+      const fetcher = vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ ...runningJob, [field]: 'other-request' }), {
+          status: 202,
+        }),
+      );
       vi.stubGlobal('fetch', fetcher);
       await expect(
         new TranslationApi().translate('session-1', 'request-1', translationRequest, 'csrf'),
