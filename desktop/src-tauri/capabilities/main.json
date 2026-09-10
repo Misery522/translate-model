@@ -1,0 +1,14 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main",
+  "description": "仅本地 main 宠物窗口的受控 API 桥、拖动与隐藏。快捷键仅由 Rust 注册。",
+  "local": true,
+  "windows": ["main"],
+  "permissions": [
+    "allow-configure-backend",
+    "allow-backend-status",
+    "allow-api-request",
+    "core:window:allow-start-dragging",
+    "core:window:allow-hide"
+  ]
+}

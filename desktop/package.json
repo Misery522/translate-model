@@ -1,0 +1,16 @@
+{
+  "name": "@yijing/desktop",
+  "version": "0.4.0-alpha.1",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24.15.0 <25" },
+  "scripts": {
+    "check": "node scripts/verify-config.mjs",
+    "test": "node scripts/test.mjs",
+    "prepare:icons": "node scripts/prepare-icons.mjs",
+    "tauri": "tauri",
+    "dev": "npm run prepare:icons && tauri dev",
+    "build": "npm run prepare:icons && tauri build --bundles nsis --no-sign --ci -- --locked"
+  },
+  "devDependencies": { "@tauri-apps/cli": "2.11.4", "ajv": "8.20.0" }
+}

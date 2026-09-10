@@ -25,6 +25,9 @@
 生产构建还包含它们使用的 scheduler。构建流程从安装包中收集上述运行时的完整
 LICENSE 文本，生成 `web/dist/THIRD_PARTY_LICENSES.txt`；分发构建产物时必须一并保留。
 前端使用系统字体和项目原创 SVG 角色，没有下载第三方宠物图片或网络字体。
+M3 增加固定版本 `@tauri-apps/api` 2.11.1，生产构建同时附带其 MIT 和 Apache-2.0
+完整文本。Tauri、reqwest 等 Rust 传递依赖必须基于审查后的 Cargo.lock 单独收集
+版权声明和完整许可；仅列出 SPDX 标识或 JS 许可证不能满足桌面再分发验收。
 Vite、TypeScript、Vitest 等为构建和测试工具，不等同于已内嵌的运行时列表。
 
 ## 外部运行时及模型

@@ -14,10 +14,14 @@ function staticShell() {
     closeBundle() {
       const output = resolve(root, 'dist');
       const require = createRequire(import.meta.url);
-      const notices = ['react', 'react-dom', 'scheduler'].map((name) => {
+      const notices = ['react', 'react-dom', 'scheduler', '@tauri-apps/api'].map((name) => {
         const packagePath = require.resolve(`${name}/package.json`);
         const metadata = JSON.parse(readFileSync(packagePath, 'utf8')) as { version: string };
-        const license = readFileSync(resolve(dirname(packagePath), 'LICENSE'), 'utf8');
+        const filenames =
+          name === '@tauri-apps/api' ? ['LICENSE_MIT', 'LICENSE_APACHE-2.0'] : ['LICENSE'];
+        const license = filenames
+          .map((filename) => readFileSync(resolve(dirname(packagePath), filename), 'utf8'))
+          .join('\n');
         return `${name} ${metadata.version}\n${'='.repeat(60)}\n${license.trim()}\n`;
       });
       // 从锁定安装包携带完整许可，不依赖压缩文件中的简短版权注释。
