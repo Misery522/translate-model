@@ -81,8 +81,9 @@ const reply = await invoke('api_request', {
 ## 本地检查与 Windows 构建
 
 截至本次实施，本机有 Node，没有可用的 Cargo、Rust 和 MSVC。
-未安装全局工具、未生成 Cargo.lock、未编译 Rust、未签名，也未做 Windows 真机交互验收。
-已固定直接依赖版本并生成 npm 锁文件，但在补齐 Cargo.lock 前不承诺传递依赖可复现。
+未安装全局工具；已审查并导入 CI 生成的 Cargo.lock 及官方 Rust 格式化结果。
+锁文件包含 480 个条目，除本项目外均为带校验和的 crates.io 来源，直接版本与 Cargo.toml 一致。
+这不是完整许可证审查；实际 Rust 编译、安全审计、签名和 Windows 真机验收分别记录状态。
 
 不依赖 Rust 的检查，在仓库根目录运行：
 

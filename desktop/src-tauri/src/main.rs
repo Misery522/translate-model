@@ -44,7 +44,9 @@ fn configure_backend(
     origin: String,
 ) -> Result<BackendStatus, BridgeError> {
     only_main(&window, &state)?;
-    state.bridge.configure(&origin, state.shortcut_available.load(Ordering::Relaxed))
+    state
+        .bridge
+        .configure(&origin, state.shortcut_available.load(Ordering::Relaxed))
 }
 
 #[tauri::command]
@@ -53,7 +55,9 @@ fn backend_status(
     state: tauri::State<'_, HostState>,
 ) -> Result<BackendStatus, BridgeError> {
     only_main(&window, &state)?;
-    state.bridge.status(state.shortcut_available.load(Ordering::Relaxed))
+    state
+        .bridge
+        .status(state.shortcut_available.load(Ordering::Relaxed))
 }
 
 #[tauri::command]
@@ -64,12 +68,15 @@ async fn api_request(
 ) -> Result<ApiResponse, BridgeError> {
     only_main(&window, &state)?;
     // 不把 serde 的详细错误返回前端，以免回显配对码或输入文本。
-    let request: ApiRequest = serde_json::from_value(request).map_err(|_| BridgeError::invalid())?;
+    let request: ApiRequest =
+        serde_json::from_value(request).map_err(|_| BridgeError::invalid())?;
     state.bridge.request(request).await
 }
 
 fn show_main(app: &tauri::AppHandle) {
-    if app.state::<HostState>().exiting.load(Ordering::SeqCst) { return; }
+    if app.state::<HostState>().exiting.load(Ordering::SeqCst) {
+        return;
+    }
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.show();
         let _ = window.unminimize();
@@ -98,7 +105,9 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let bridge = Bridge::new().map_err(|_| std::io::Error::other("安全连接初始化失败"))?;
     tauri::Builder::default()
         .manage(HostState {
-            bridge, shortcut_available: AtomicBool::new(false), exiting: AtomicBool::new(false),
+            bridge,
+            shortcut_available: AtomicBool::new(false),
+            exiting: AtomicBool::new(false),
         })
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
@@ -123,7 +132,9 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "show" => show_main(app),
                     "hide" => {
-                        if let Some(window) = app.get_webview_window("main") { let _ = window.hide(); }
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.hide();
+                        }
                     }
                     "quit" => {
                         if app.state::<HostState>().begin_exit() {
@@ -140,12 +151,23 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                     _ => {}
                 })
                 .on_tray_icon_event(|tray, event| {
-                    if matches!(event, TrayIconEvent::Click {
-                        button: MouseButton::Left, button_state: MouseButtonState::Up, ..
-                    }) { show_main(tray.app_handle()); }
+                    if matches!(
+                        event,
+                        TrayIconEvent::Click {
+                            button: MouseButton::Left,
+                            button_state: MouseButtonState::Up,
+                            ..
+                        }
+                    ) {
+                        show_main(tray.app_handle());
+                    }
                 })
                 .build(app)?;
-            let window_config = app.config().app.windows.first()
+            let window_config = app
+                .config()
+                .app
+                .windows
+                .first()
                 .ok_or_else(|| std::io::Error::other("缺少 main 窗口配置"))?;
             WebviewWindowBuilder::from_config(app, window_config)?
                 .on_navigation(bridge::local_navigation_allowed)
@@ -153,7 +175,9 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                 .build()?;
             // 快捷键冲突不应使应用无法启动；状态区域可提示仍能从托盘打开。
             let available = app.global_shortcut().register("Ctrl+Shift+T").is_ok();
-            app.state::<HostState>().shortcut_available.store(available, Ordering::Relaxed);
+            app.state::<HostState>()
+                .shortcut_available
+                .store(available, Ordering::Relaxed);
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -164,7 +188,11 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         })
-        .invoke_handler(tauri::generate_handler![configure_backend, backend_status, api_request])
+        .invoke_handler(tauri::generate_handler![
+            configure_backend,
+            backend_status,
+            api_request
+        ])
         .run(tauri::generate_context!())?;
     Ok(())
 }
