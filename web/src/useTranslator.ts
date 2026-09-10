@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError, describeError, jobResponse, pause, TranslationApi } from './api';
 import type { JobBinding } from './api';
+import type { TranslatorTransport } from './translatorTransport';
 import type { DeviceAuth, Options, TranslationRequest, Turn, WorkSession } from './types';
 
 const defaultApi = new TranslationApi();
@@ -21,7 +22,7 @@ interface Operation {
   jobBinding?: JobBinding;
 }
 
-export function useTranslator(api = defaultApi) {
+export function useTranslator(api: TranslatorTransport = defaultApi) {
   const [auth, setAuth] = useState<DeviceAuth | null>(null);
   const [connection, setConnection] = useState<Connection>('checking');
   const [activity, setActivity] = useState<Activity>('connecting');

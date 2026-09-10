@@ -6,7 +6,8 @@
 
 仓库地址：[Misery522/translate-model](https://github.com/Misery522/translate-model)。
 项目处于早期版本。除原有 Gradio 界面外，现提供私人 API 与会话式网页；
-原生桌面宠物、手机客户端和语音仍按[开发路线](docs/ROADMAP.md)分阶段验证。
+Windows 文字宠物已提供独立源码与构建门禁；原生安装与真机交互仍需验证。
+手机客户端、语音与手机离线模型按[开发路线](docs/ROADMAP.md)分阶段推进。
 核心已独立为 `yijing` 包，Gradio 经统一服务调用既有翻译工作流，见
 [核心服务架构](docs/ARCHITECTURE.md)。
 
@@ -63,6 +64,20 @@ uv run python agent.py
 需要会话式网页或私人手机访问时，按照[私人部署说明](docs/PRIVATE_DEPLOYMENT.md)
 构建 `web/` 并运行 `uv run yijing-api --static-dir web/dist`。
 私人手机访问还需要用户配置 HTTPS 与设备访问控制；不是打开 `share=True`。
+
+## 文字宠物与跨设备目标
+
+桌面客户端位于 [desktop](desktop/README.md)，复用同一 API 和 React 翻译状态机。
+源码包括置顶小窗、原创小译、托盘、`Ctrl+Shift+T`、拖动、隐藏和独立翻译气泡。
+它不会自动启动模型或打开服务，不是自由聊天或语音助手；必须先启动私人 API，
+再在小窗明确设置地址并输入电脑终端的一次性配对码。
+
+普通网页即使添加 `?view=pet` 也不会获得桌面权限；Windows 宿主只加载本地打包网页。
+详见[桌面验收记录](docs/M3_ACCEPTANCE.md)，不要把源码测试通过理解为安装包已验收。
+
+Android 远端客户端目标为 API 26（含 Android 8.0），iPhone/iPad 先使用私人 HTTPS
+网页。华为需区分可运行 Android APK 的系统和原生鸿蒙；这些都是开发目标，
+不是已经覆盖 90% 设备的结论。详见[兼容性与真机门槛](docs/CLIENT_COMPATIBILITY.md)。
 
 ## 配置
 

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ApiError, jobResponse, TranslationApi } from './api';
+import { ApiError, jobResponse, TranslationApi, workSessionResponse } from './api';
 import { isStaticRequest } from './service-worker.js';
 
 const translationRequest = {
@@ -16,11 +16,101 @@ const runningJob = {
   client_request_id: 'request-1',
   generation: 1,
   status: 'running',
-  created_at: '2026-09-07',
-  expires_at: '2099-01-01',
+  created_at: '2026-09-07T00:00:00.000Z',
+  expires_at: '2099-01-01T00:00:00.000Z',
   result: null,
   error: null,
 };
+
+describe('共享工作会话响应', () => {
+  const session = {
+    session_id: 'session-1',
+    generation: 0,
+    expires_at: '2099-01-01T00:00:00.000Z',
+  };
+
+  it('接受非空会话编号、非负整数代次与合法 ISO 到期时间', () => {
+    expect(workSessionResponse(session)).toBe(session);
+    expect(
+      workSessionResponse({ ...session, generation: Number.MAX_SAFE_INTEGER }).generation,
+    ).toBe(Number.MAX_SAFE_INTEGER);
+  });
+
+  it.each([
+    ['非对象', null],
+    ['空编号', { ...session, session_id: '' }],
+    ['缺失编号', { ...session, session_id: undefined }],
+    ['编号类型错误', { ...session, session_id: 1 }],
+    ['负数代次', { ...session, generation: -1 }],
+    ['小数代次', { ...session, generation: 0.5 }],
+    ['字符串代次', { ...session, generation: '0' }],
+    ['超出安全整数的代次', { ...session, generation: Number.MAX_SAFE_INTEGER + 1 }],
+    ['无效到期时间', { ...session, expires_at: 'not-a-date' }],
+    ['缺失到期时间', { ...session, expires_at: undefined }],
+  ])('拒绝%s，HTTP 创建会话也不能绕过共享校验', async (_label, payload) => {
+    expect(() => workSessionResponse(payload)).toThrow(ApiError);
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify(payload), { status: 201 }));
+    vi.stubGlobal('fetch', fetcher);
+    await expect(new TranslationApi().createSession('csrf')).rejects.toMatchObject({
+      problem: { code: 'INVALID_RESPONSE', retryable: true },
+    });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('网页 CSRF 不能因共享接口接受 null 而省略', () => {
+  const writes: [string, (api: TranslationApi, csrf: string | null) => Promise<unknown>][] = [
+    ['创建会话', (api, csrf) => api.createSession(csrf)],
+    ['删除会话', (api, csrf) => api.deleteSession('session-1', csrf)],
+    ['提交翻译', (api, csrf) => api.translate('session-1', 'request-1', translationRequest, csrf)],
+    ['取消翻译', (api, csrf) => api.cancel('job-1', csrf)],
+    ['退出设备', (api, csrf) => api.logout(csrf)],
+  ];
+
+  describe.each(writes)('%s', (_label, write) => {
+    it.each([null, ''])('CSRF 为 %s 时在发出 fetch 前拒绝', async (csrf) => {
+      const fetcher = vi.fn();
+      vi.stubGlobal('fetch', fetcher);
+      await expect(write(new TranslationApi(), csrf)).rejects.toMatchObject({
+        status: 403,
+        problem: { code: 'AUTH_MODE_MISMATCH', retryable: false },
+      });
+      expect(fetcher).not.toHaveBeenCalled();
+    });
+  });
+
+  it.each([null, ''])('离开页面时缺失 CSRF %s 不发送清理请求', (csrf) => {
+    const fetcher = vi.fn();
+    vi.stubGlobal('fetch', fetcher);
+    expect(() => new TranslationApi().leaveSession('session-1', csrf)).not.toThrow();
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it('网页配对接口仍拒绝原生 Bearer 响应，不把令牌作为网页认证', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            device_id: 'device-1',
+            device_name: 'native-device',
+            expires_at: '2099-01-01T00:00:00.000Z',
+            auth_mode: 'bearer',
+            csrf_token: null,
+            access_token: 'native-only-token',
+            token_type: 'Bearer',
+          }),
+          { status: 201 },
+        ),
+      ),
+    );
+    await expect(new TranslationApi().pair('ABCDEFGHIJKL')).rejects.toMatchObject({
+      problem: { code: 'AUTH_MODE_MISMATCH', retryable: false },
+    });
+  });
+});
 
 describe('任务响应绑定', () => {
   it.each(['session_id', 'client_request_id'] as const)(
@@ -75,11 +165,16 @@ describe('任务响应绑定', () => {
 
 describe('HTTP 与离线隐私边界', () => {
   it('仅使用同源 Cookie，写操作带内存 CSRF，禁止缓存和重定向', async () => {
-    const fetcher = vi
-      .fn()
-      .mockResolvedValue(
-        new Response(JSON.stringify({ session_id: 's', generation: 0 }), { status: 200 }),
-      );
+    const fetcher = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          session_id: 's',
+          generation: 0,
+          expires_at: '2099-01-01T00:00:00.000Z',
+        }),
+        { status: 200 },
+      ),
+    );
     vi.stubGlobal('fetch', fetcher);
     const api = new TranslationApi();
     await api.createSession('csrf-only-memory');
@@ -106,7 +201,7 @@ describe('HTTP 与离线隐私边界', () => {
         JSON.stringify({
           device_id: 'd',
           device_name: 'browser',
-          expires_at: '2099-01-01',
+          expires_at: '2099-01-01T00:00:00.000Z',
           auth_mode: 'cookie',
           csrf_token: 'csrf',
           access_token: null,
