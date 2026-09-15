@@ -169,8 +169,11 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                 .windows
                 .first()
                 .ok_or_else(|| std::io::Error::other("缺少 main 窗口配置"))?;
+            let dev_origin = app.config().build.dev_url.clone();
             WebviewWindowBuilder::from_config(app, window_config)?
-                .on_navigation(bridge::local_navigation_allowed)
+                .on_navigation(move |url| {
+                    bridge::local_navigation_allowed(url, dev_origin.as_ref())
+                })
                 .on_new_window(|_, _| tauri::webview::NewWindowResponse::Deny)
                 .build()?;
             // 快捷键冲突不应使应用无法启动；状态区域可提示仍能从托盘打开。

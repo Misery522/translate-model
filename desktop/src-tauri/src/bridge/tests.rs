@@ -66,21 +66,36 @@ fn canonicalizes_https_default_port() {
 
 #[test]
 fn only_bundled_pages_may_navigate() {
+    let dev_origin = Url::parse("http://127.0.0.1:1430/").unwrap();
     for input in [
         "tauri://localhost/index.html?view=pet",
         "http://tauri.localhost/index.html",
+        "http://127.0.0.1:1430/index.html?view=pet",
     ] {
-        assert!(local_navigation_allowed(&Url::parse(input).unwrap()));
+        assert!(local_navigation_allowed(
+            &Url::parse(input).unwrap(),
+            Some(&dev_origin)
+        ));
     }
     for input in [
         "https://example.test",
         "http://localhost:8765/",
         "http://tauri.localhost:8765/",
+        "http://127.0.0.1:1431/index.html?view=pet",
+        "http://127.0.0.1:1430/index.html?view=web",
+        "http://127.0.0.1:1430/other.html?view=pet",
         "file:///tmp/page.html",
         "javascript:alert(1)",
     ] {
-        assert!(!local_navigation_allowed(&Url::parse(input).unwrap()));
+        assert!(!local_navigation_allowed(
+            &Url::parse(input).unwrap(),
+            Some(&dev_origin)
+        ));
     }
+    assert!(!local_navigation_allowed(
+        &Url::parse("http://127.0.0.1:1430/index.html?view=pet").unwrap(),
+        None
+    ));
 }
 
 #[test]

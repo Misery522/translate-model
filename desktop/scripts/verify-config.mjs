@@ -48,11 +48,13 @@ export function validateConfiguration(config, capability, cargo, host, bridge) {
   ].sort());
   assert.ok(!/tauri-plugin-(shell|fs|http|clipboard|opener|store|log)/.test(cargo));
   assert.match(cargo, /reqwest = \{ version = "=[0-9.]+", default-features = false, features = \["json", "rustls"\] \}/);
-  for (const token of ['.no_proxy()', 'redirect::Policy::none()', 'reqwest::retry::never()', '.timeout(Duration::from_secs(15))', '.connect_timeout(Duration::from_secs(5))', 'set_sensitive(true)', 'check_generation(generation)', 'MAX_RESPONSE_BYTES']) {
+  for (const token of ['.no_proxy()', 'redirect::Policy::none()', 'reqwest::retry::never()', '.timeout(Duration::from_secs(15))', '.connect_timeout(Duration::from_secs(5))', 'set_sensitive(true)', 'check_generation(generation)', 'MAX_RESPONSE_BYTES', 'url.origin() == origin.origin()', 'url.path() == "/index.html"', 'url.query() == Some("view=pet")']) {
     assert.ok(bridge.includes(token), `缺少桥安全约束: ${token}`);
   }
   assert.ok(!/std::process::Command|std::fs::|cookie_store\s*\(|println!|dbg!/.test(bridge));
-  assert.ok(host.includes('.on_navigation(bridge::local_navigation_allowed)'));
+  assert.ok(host.includes('let dev_origin = app.config().build.dev_url.clone();'));
+  assert.ok(host.includes('.on_navigation(move |url|'));
+  assert.ok(host.includes('bridge::local_navigation_allowed(url, dev_origin.as_ref())'));
   assert.ok(host.includes('NewWindowResponse::Deny'));
   assert.ok(host.includes('api.prevent_close()'));
   assert.ok(host.includes('if state.accepts_command(window.label())'));

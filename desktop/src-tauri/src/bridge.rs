@@ -379,13 +379,27 @@ pub fn validate_origin(raw: &str) -> Result<Url, BridgeError> {
     Url::parse(&parsed.origin().ascii_serialization()).map_err(|_| invalid())
 }
 
-pub fn local_navigation_allowed(url: &Url) -> bool {
-    matches!(url.scheme(), "tauri" | "http" | "https")
+pub fn local_navigation_allowed(url: &Url, dev_origin: Option<&Url>) -> bool {
+    let bundled_page = matches!(url.scheme(), "tauri" | "http" | "https")
         && matches!(url.host_str(), Some("tauri.localhost") | Some("localhost"))
         && (url.scheme() == "tauri" || url.host_str() == Some("tauri.localhost"))
         && url.port().is_none()
         && url.username().is_empty()
-        && url.password().is_none()
+        && url.password().is_none();
+    if bundled_page {
+        return true;
+    }
+
+    // `tauri dev` 在没有外部 devUrl 时会为 frontendDist 启动一个本机临时服务。
+    // 只允许配置中由 Tauri CLI 注入的精确开发源和宠物入口，不放开其他本机端口。
+    dev_origin.is_some_and(|origin| {
+        url.origin() == origin.origin()
+            && url.path() == "/index.html"
+            && url.query() == Some("view=pet")
+            && url.fragment().is_none()
+            && url.username().is_empty()
+            && url.password().is_none()
+    })
 }
 
 #[derive(Default)]
