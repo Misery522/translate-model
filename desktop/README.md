@@ -80,10 +80,17 @@ const reply = await invoke('api_request', {
 
 ## 本地检查与 Windows 构建
 
-截至本次实施，本机有 Node，没有可用的 Cargo、Rust 和 MSVC。
-未安装全局工具；已审查并导入 CI 生成的 Cargo.lock 及官方 Rust 格式化结果。
+截至 2026-09-15，本机 Alpha 开发环境已经具备 Node 24.18.1、
+Rust 1.98.0 MSVC 工具链、Visual Studio Community 2026 Insiders 的
+“使用 C++ 的桌面开发”工作负荷、Windows SDK 10.0.26100、CMake 和 WebView2。
+当前 Insiders 环境可以用于源码开发与 Alpha 试用；正式打包前仍应使用受支持的稳定版
+Visual Studio/Build Tools 重新完成安装、卸载和运行验收。
+
+已审查并导入 CI 生成的 Cargo.lock 及官方 Rust 格式化结果。
 锁文件包含 480 个条目，除本项目外均为带校验和的 crates.io 来源，直接版本与 Cargo.toml 一致。
-这不是完整许可证审查；实际 Rust 编译、安全审计、签名和 Windows 真机验收分别记录状态。
+本机已实际完成 `cargo fmt --check`、锁定编译和 32 项 Rust 测试；网页 162 项测试、
+桌面静态 34 项测试及 TypeScript 检查也已通过。源码编译通过仍不等于安全审计、
+许可证、签名或 Windows 安装包验收通过。
 
 不依赖 Rust 的检查，在仓库根目录运行：
 
@@ -94,6 +101,11 @@ npm --prefix desktop test
 ```
 
 配置检查同时使用固定版本 CLI 自带的 JSON Schema 和项目最小权限断言，不访问运行中的服务。
+
+`npm --prefix desktop run dev` 使用 Tauri CLI 提供的临时本机开发地址。
+宿主只允许该地址的同源 `/index.html?view=pet` 导航；其他端口、路径、查询参数和远程来源
+仍会被拒绝。旧版白屏是开发地址未纳入这条精确白名单、WebView 最终停在 `about:blank`；
+当前实现已修复并有 Rust 与静态回归测试。开发模式放行不扩大正式打包页面的导航范围。
 
 Windows 构建环境需要 Rust MSVC 工具链、Visual Studio C++ Build Tools、WebView2，
 详见 [Tauri 前置要求](https://v2.tauri.app/start/prerequisites/)。不要为了构建修改现有 Python 环境。
@@ -107,7 +119,8 @@ Windows 构建环境需要 Rust MSVC 工具链、Visual Studio C++ Build Tools�
 官方 Actions 均固定完整 commit SHA，`persist-credentials=false`、`contents: read`，没有签名秘密、
 发布写权限、工作区整体上传或依赖缓存。临时 runner 安装工具链不会修改用户电脑环境。
 
-**没有已提交的 Cargo.lock 时**，只生成锁文件和真实 rustfmt 格式化补丁供审查，
+**历史引导阶段没有已提交的 Cargo.lock 时**，工作流只生成锁文件和真实 rustfmt
+格式化补丁供审查，
 跳过 npm/Rust 测试与 Rust 安全审计；本阶段无论是否有锁文件都不构建安装包，
 最终 `Desktop required checks` 必须失败。此时工作流产物不是已通过构建的源码/安装包。
 在对应运行的 Artifacts 中下载：
@@ -151,7 +164,10 @@ $lockfile = Join-Path $env:GITHUB_WORKSPACE 'desktop/src-tauri/Cargo.lock'
 & "$toolRoot/bin/cargo-audit.exe" audit --file $lockfile --deny warnings
 ```
 
-漏洞、严格警告、审计数据库更新失败都不能忽略。工作流不允许隐式项目/用户 `audit.toml`
+截至 2026-09-15，严格审计仍阻止发布：`rustls 0.23.44` 命中
+RUSTSEC-2026-0285，另有 `proc-macro-error`、5 个 UNIC 组件和 `glib 0.18.5`
+共 7 项警告。漏洞、严格警告、审计数据库更新失败都不能忽略。
+工作流不允许隐式项目/用户 `audit.toml`
 降低门禁，不使用忽略漏洞、允许过期数据库或自动修改依赖的参数。
 审计成功仅表示当前数据库未发现需阻止的已知问题，不等于完整安全审计或许可审查通过。
 其后的源码验证命令等价于：

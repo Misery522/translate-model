@@ -73,7 +73,9 @@ uv run python agent.py
 再在小窗明确设置地址并输入电脑终端的一次性配对码。
 
 普通网页即使添加 `?view=pet` 也不会获得桌面权限；Windows 宿主只加载本地打包网页。
-详见[桌面验收记录](docs/M3_ACCEPTANCE.md)，不要把源码测试通过理解为安装包已验收。
+当前 M3 Alpha 已在 Windows 本机完成启动、一次性配对、真实模型翻译、隐藏唤回和拖动验证；
+开发模式白屏问题也已修复。安装/卸载、严格依赖审计、完整许可、签名和多屏缩放仍未验收。
+详见[桌面验收记录](docs/M3_ACCEPTANCE.md)，不要把源码或 Alpha 运行通过理解为安装包已验收。
 
 Android 远端客户端目标为 API 26（含 Android 8.0），iPhone/iPad 先使用私人 HTTPS
 网页。华为需区分可运行 Android APK 的系统和原生鸿蒙；这些都是开发目标，
