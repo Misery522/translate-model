@@ -75,9 +75,23 @@ test('Rust 测试计时器只终止自己创建的进程树', () => {
   const runner = read('run-rust-tests.ps1');
   assert.match(runner, /ValidateRange\(1, 60\)/);
   assert.match(runner, /CreateNoWindow = \$true/);
+  assert.match(runner, /RedirectStandardOutput = \$true/);
+  assert.match(runner, /RedirectStandardError = \$true/);
+  assert.match(runner, /Environment\['RUST_BACKTRACE'\] = '1'/);
+  assert.match(runner, /'--nocapture'/);
   assert.match(runner, /\$testProcess\.Start\(\)/);
+  assert.match(runner, /StandardOutput\.ReadToEndAsync\(\)/);
+  assert.match(runner, /StandardError\.ReadToEndAsync\(\)/);
+  assert.ok(!runner.includes('.ReadToEnd()'));
   assert.match(runner, /WaitForExit\(\$TimeoutSeconds \* 1000\)/);
+  assert.match(runner, /\$testProcess\.WaitForExit\(\)/);
+  assert.match(runner, /GetAwaiter\(\)\.GetResult\(\)/);
+  assert.match(runner, /\[Console\]::Out\.Write\(\$standardOutput\)/);
+  assert.match(runner, /\[Console\]::Error\.Write\(\$standardError\)/);
   assert.match(runner, /\$testProcess\.Kill\(\$true\)/);
+  assert.match(runner, /exit 124/);
+  assert.match(runner, /\$exitCode = \$testProcess\.ExitCode/);
+  assert.match(runner, /Rust 测试超过 \$TimeoutSeconds 秒上限/);
   assert.ok(!runner.includes('Get-Process') && !runner.includes('Stop-Process'));
 });
 
