@@ -65,6 +65,12 @@ uv run python agent.py
 构建 `web/` 并运行 `uv run yijing-api --static-dir web/dist`。
 私人手机访问还需要用户配置 HTTPS 与设备访问控制；不是打开 `share=True`。
 
+仓库包含最小的 VS Code 工作区配置：推荐 Python、Pylance、Ruff、Prettier、
+rust-analyzer、PowerShell 和 Tauri 扩展，Python 默认使用仓库自己的 `.venv`，
+rust-analyzer 关联 `desktop/src-tauri/Cargo.toml`。Windows 集成终端只在本工作区
+临时加入 `%USERPROFILE%\.cargo\bin` 并选择固定 Rust 1.98.0 工具链；
+不会修改用户或系统 PATH。首次打开仓库后新建一个终端即可生效。
+
 ## 文字宠物与跨设备目标
 
 桌面客户端位于 [desktop](desktop/README.md)，复用同一 API 和 React 翻译状态机。
