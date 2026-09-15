@@ -74,6 +74,12 @@ test('固定 Rust 审计使用独立工具根与明确锁文件，不允许静�
 test('Rust 测试计时器只终止自己创建的进程树', () => {
   const runner = read('run-rust-tests.ps1');
   assert.match(runner, /ValidateRange\(1, 60\)/);
+  assert.match(runner, /ValidateSet\('', 'capture', 'failure', 'timeout', 'sensitive'\)/);
+  assert.match(runner, /YIJING_RUST_RUNNER_SELF_TEST -ne '1'/);
+  assert.match(runner, /fixtures\\rust-runner-fixture\.ps1/);
+  assert.ok(!runner.includes('TestExecutable') && !runner.includes('TestCommand'));
+  assert.match(runner, /FileName = 'cargo'/);
+  assert.match(runner, /@\('test', '--locked', '--', '--nocapture', '--test-threads=1'\)/);
   assert.match(runner, /CreateNoWindow = \$true/);
   assert.match(runner, /RedirectStandardOutput = \$true/);
   assert.match(runner, /RedirectStandardError = \$true/);
@@ -86,8 +92,8 @@ test('Rust 测试计时器只终止自己创建的进程树', () => {
   assert.match(runner, /WaitForExit\(\$TimeoutSeconds \* 1000\)/);
   assert.match(runner, /\$testProcess\.WaitForExit\(\)/);
   assert.match(runner, /GetAwaiter\(\)\.GetResult\(\)/);
-  assert.match(runner, /\[Console\]::Out\.Write\(\$standardOutput\)/);
-  assert.match(runner, /\[Console\]::Error\.Write\(\$standardError\)/);
+  assert.match(runner, /\[Console\]::Out\.Write\(\(Protect-SensitiveOutput \$standardOutput \$sensitiveValues\)\)/);
+  assert.match(runner, /\[Console\]::Error\.Write\(\(Protect-SensitiveOutput \$standardError \$sensitiveValues\)\)/);
   assert.match(runner, /\$testProcess\.Kill\(\$true\)/);
   assert.match(runner, /exit 124/);
   assert.match(runner, /\$exitCode = \$testProcess\.ExitCode/);
