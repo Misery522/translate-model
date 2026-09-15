@@ -9,10 +9,8 @@ export type ApiProblem = Omit<components['schemas']['ApiErrorView'], 'request_id
   Partial<Pick<components['schemas']['ApiErrorView'], 'request_id'>>;
 export type AuthView = components['schemas']['AuthView'];
 export type PairView = components['schemas']['PairView'];
-export type DeviceAuth = Omit<AuthView, 'auth_mode' | 'csrf_token'> & {
-  auth_mode: 'cookie';
-  csrf_token: string;
-};
+export type DeviceAuth = Omit<AuthView, 'auth_mode' | 'csrf_token'> &
+  ({ auth_mode: 'cookie'; csrf_token: string } | { auth_mode: 'bearer'; csrf_token: null });
 export type WorkSession = components['schemas']['SessionView'];
 export type Job = components['schemas']['JobView'];
 export interface Turn {

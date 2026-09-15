@@ -1,23 +1,10 @@
 import { useState } from 'react';
-import type { TranslationApi } from './api';
+import type { TranslatorTransport } from './translatorTransport';
 import { Pet } from './Pet';
+import { languages } from './languages';
 import type { AgentResult, Options, Turn } from './types';
 import { characterCount, useTranslator } from './useTranslator';
 
-const languages = [
-  ['zh-Hans', '简体中文'],
-  ['zh-Hant', '繁体中文'],
-  ['en', '英语'],
-  ['ja', '日语'],
-  ['ko', '韩语'],
-  ['fr', '法语'],
-  ['de', '德语'],
-  ['es', '西班牙语'],
-  ['ru', '俄语'],
-  ['pt-BR', '葡萄牙语（巴西）'],
-  ['ar', '阿拉伯语'],
-  ['it', '意大利语'],
-];
 const routeNames: Record<AgentResult['route'], string> = {
   translate_text: '文字翻译',
   annotate_code: '代码注释',
@@ -264,7 +251,7 @@ function ConversationTurn({
   );
 }
 
-export default function App({ api }: { api?: TranslationApi }) {
+export default function App({ api }: { api?: TranslatorTransport }) {
   const app = useTranslator(api);
   const [pairCode, setPairCode] = useState('');
   const count = characterCount(app.draft);
