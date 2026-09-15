@@ -89,7 +89,32 @@ npm --prefix web test
 ## 静态资产与更新
 
 公开构建目录仅包含：`index.html`、`manifest.webmanifest`、`pet-icon.svg`、
-`sw.js`、`THIRD_PARTY_LICENSES.txt` 和 `assets/` 下的构建资产。
+标准 PWA PNG、maskable PNG、`apple-touch-icon.png`、`sw.js`、
+`THIRD_PARTY_LICENSES.txt` 和 `assets/` 下的构建资产。
+PNG 由 `tauri-cli 2.11.4` 的 `tauri icon`（内置 resvg）从原创
+`pet-icon.svg` 离线生成；maskable 和 Apple 派生源位于 `scripts/`，只增加
+同色满底，maskable 再缩入平台安全区，不改变角色设计。该渲染器不是网页运行
+依赖，也未加入本工作树的锁文件；重新生成前应在隔离的工具环境确认版本输出严格为
+`tauri-cli 2.11.4`，再分别执行：
+
+```powershell
+node <tauri.js> icon --output <普通输出目录> --png 192 --png 512 public/pet-icon.svg
+node <tauri.js> icon --output <maskable输出目录> --png 512 scripts/pet-icon-maskable-source.svg
+node <tauri.js> icon --output <Apple输出目录> --png 180 scripts/pet-icon-apple-source.svg
+```
+
+当前提交产物的 SHA256 是：
+
+```text
+10083ea533259f3826be35a56a2717895da3c16afd57164cc9b7a7e4e32f7bb6  pet-icon-192.png
+40ea77513eaffab71b585bb8305bd67fd951c7a3afd0a2086c0f927d17833fa2  pet-icon-512.png
+aaffcba5ed361acff54d1a05c8d04c41276cc6c6b7ff8f75683fd0da8ff83c34  pet-icon-maskable-512.png
+1bef64e1776e2359f2097d5d8309f2bc9f121bb121c6c1b1a6d41e3419afe6b5  apple-touch-icon.png
+```
+
+测试会校验 manifest、完整 PNG 数据块与 CRC、IDAT 解压和像素重建、产物 SHA、
+不透明底色、maskable 安全区及静态公开白名单。更换渲染器或有意修改图标时，必须
+目视验收新产物，并在同一变更中更新来源、版本和期望 SHA。
 构建时从已锁定安装的 React、React DOM、Scheduler 包读取完整版权和许可，
 合并生成 `THIRD_PARTY_LICENSES.txt`，发布前端时必须一并提供。
 构建插件按实际文件名生成精确缓存白名单，许可文件不需要离线缓存。
