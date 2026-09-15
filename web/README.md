@@ -89,7 +89,11 @@ npm --prefix web test
 ## 静态资产与更新
 
 公开构建目录仅包含：`index.html`、`manifest.webmanifest`、`pet-icon.svg`、
-`sw.js`、`THIRD_PARTY_LICENSES.txt` 和 `assets/` 下的构建资产。
+标准 PWA PNG、maskable PNG、`apple-touch-icon.png`、`sw.js`、
+`THIRD_PARTY_LICENSES.txt` 和 `assets/` 下的构建资产。
+PNG 使用本地 SVG 渲染器从原创 `pet-icon.svg` 离线生成；maskable 和 Apple
+派生源位于 `scripts/`，只增加同色满底，maskable 再缩入平台安全区，不改变
+角色设计。测试会校验 manifest 声明、PNG 尺寸、内容存在性和静态公开白名单。
 构建时从已锁定安装的 React、React DOM、Scheduler 包读取完整版权和许可，
 合并生成 `THIRD_PARTY_LICENSES.txt`，发布前端时必须一并提供。
 构建插件按实际文件名生成精确缓存白名单，许可文件不需要离线缓存。

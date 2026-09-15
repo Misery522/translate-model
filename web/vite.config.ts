@@ -6,6 +6,8 @@ import { createRequire } from 'node:module';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
+import { isPublicShellAsset } from './scripts/static-assets.mjs';
+
 // 构建时生成精确静态白名单；API、用户输入及响应不进入缓存。
 function staticShell() {
   const root = fileURLToPath(new URL('.', import.meta.url));
@@ -24,11 +26,7 @@ function staticShell() {
       writeFileSync(resolve(output, 'THIRD_PARTY_LICENSES.txt'), `${notices.join('\n')}\n`);
       const assets = readdirSync(output, { recursive: true, encoding: 'utf8' })
         .map((path) => path.replaceAll('\\', '/'))
-        .filter((path) =>
-          /^(index\.html|pet-icon\.svg|manifest\.webmanifest|assets\/[^/]+\.(js|css|svg|woff2))$/.test(
-            path,
-          ),
-        )
+        .filter(isPublicShellAsset)
         .sort();
       const hash = createHash('sha256');
       for (const asset of assets) hash.update(asset).update(readFileSync(resolve(output, asset)));
