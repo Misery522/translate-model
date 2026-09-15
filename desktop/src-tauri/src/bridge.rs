@@ -120,8 +120,6 @@ pub struct ApiResponse {
     pub body: Value,
 }
 
-#[derive(Deserialize)]
-#[serde(tag = "operation", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ApiRequest {
     Health,
     Pair {
@@ -147,6 +145,73 @@ pub enum ApiRequest {
         job_id: Uuid,
     },
     Glossary,
+}
+
+// Serde 的内部标签 unit variant 会忽略标签之外的字段，即使枚举使用
+// deny_unknown_fields。wire 层改用空结构体 variant，确保每种操作都严格拒绝
+// 前端自带的 method、path、headers 或其他未声明字段，同时保留内部调用 API。
+#[derive(Deserialize)]
+#[serde(tag = "operation", rename_all = "snake_case", deny_unknown_fields)]
+enum StrictApiRequest {
+    Health {},
+    Pair {
+        code: String,
+        device_name: String,
+    },
+    Auth {},
+    Logout {},
+    Capabilities {},
+    CreateSession {},
+    DeleteSession {
+        session_id: Uuid,
+    },
+    Translate {
+        session_id: Uuid,
+        client_request_id: Uuid,
+        request: TranslationInput,
+    },
+    Job {
+        job_id: Uuid,
+    },
+    Cancel {
+        job_id: Uuid,
+    },
+    Glossary {},
+}
+
+impl From<StrictApiRequest> for ApiRequest {
+    fn from(request: StrictApiRequest) -> Self {
+        match request {
+            StrictApiRequest::Health {} => Self::Health,
+            StrictApiRequest::Pair { code, device_name } => Self::Pair { code, device_name },
+            StrictApiRequest::Auth {} => Self::Auth,
+            StrictApiRequest::Logout {} => Self::Logout,
+            StrictApiRequest::Capabilities {} => Self::Capabilities,
+            StrictApiRequest::CreateSession {} => Self::CreateSession,
+            StrictApiRequest::DeleteSession { session_id } => Self::DeleteSession { session_id },
+            StrictApiRequest::Translate {
+                session_id,
+                client_request_id,
+                request,
+            } => Self::Translate {
+                session_id,
+                client_request_id,
+                request,
+            },
+            StrictApiRequest::Job { job_id } => Self::Job { job_id },
+            StrictApiRequest::Cancel { job_id } => Self::Cancel { job_id },
+            StrictApiRequest::Glossary {} => Self::Glossary,
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for ApiRequest {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        StrictApiRequest::deserialize(deserializer).map(Into::into)
+    }
 }
 
 #[derive(Deserialize, Serialize)]

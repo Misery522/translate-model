@@ -85,14 +85,62 @@ fn only_bundled_pages_may_navigate() {
 
 #[test]
 fn rejects_arbitrary_operations_methods_paths_and_headers() {
-    for value in [
-        json!({"operation":"fetch","url":"https://example.test"}),
-        json!({"operation":"health","path":"/admin"}),
-        json!({"operation":"health","method":"DELETE"}),
-        json!({"operation":"auth","headers":{}}),
-        json!({"operation":"shell","command":"echo"}),
+    for (case, value) in [
+        (
+            "unknown fetch operation",
+            json!({"operation":"fetch","url":"https://example.test"}),
+        ),
+        (
+            "unknown shell operation",
+            json!({"operation":"shell","command":"echo"}),
+        ),
     ] {
-        assert!(serde_json::from_value::<ApiRequest>(value).is_err());
+        assert!(
+            serde_json::from_value::<ApiRequest>(value.clone()).is_err(),
+            "{case} was accepted: {value}"
+        );
+    }
+
+    let id = Uuid::nil().to_string();
+    for (operation, valid) in [
+        ("health", json!({"operation":"health"})),
+        (
+            "pair",
+            json!({"operation":"pair","code":"AAAAAAAAAAAA","device_name":"pet"}),
+        ),
+        ("auth", json!({"operation":"auth"})),
+        ("logout", json!({"operation":"logout"})),
+        ("capabilities", json!({"operation":"capabilities"})),
+        ("create_session", json!({"operation":"create_session"})),
+        (
+            "delete_session",
+            json!({"operation":"delete_session","session_id":id}),
+        ),
+        (
+            "translate",
+            json!({
+                "operation":"translate",
+                "session_id":id,
+                "client_request_id":id,
+                "request":translation()
+            }),
+        ),
+        ("job", json!({"operation":"job","job_id":id})),
+        ("cancel", json!({"operation":"cancel","job_id":id})),
+        ("glossary", json!({"operation":"glossary"})),
+    ] {
+        for (field, injected) in [
+            ("method", json!("DELETE")),
+            ("path", json!("/admin")),
+            ("headers", json!({"authorization":"synthetic"})),
+        ] {
+            let mut value = valid.clone();
+            value[field] = injected;
+            assert!(
+                serde_json::from_value::<ApiRequest>(value.clone()).is_err(),
+                "{operation} unexpectedly accepted `{field}`: {value}"
+            );
+        }
     }
 }
 
