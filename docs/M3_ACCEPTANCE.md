@@ -1,6 +1,7 @@
 # M3 Windows 文字宠物验收记录
 
-日期：2026-09-15。版本：0.4.0-alpha.1；开发中，尚未正式发行。
+初始日期：2026-09-15；最近复验：2026-09-20。版本：0.4.0-alpha.1；
+开发中，尚未正式发行。
 
 ## 已验证的源码与本机 Alpha 能力
 
@@ -21,14 +22,22 @@
   WebView 因而停在 `about:blank`。现在只允许实际开发源的同源
   `/index.html?view=pet`，其他端口、路径或查询仍被拒绝，并有回归测试。
 - Cargo.lock 共 480 个条目；除本项目外均为带校验和的 crates.io 来源，直接版本一致。
+- 安全依赖基线 `d8e947e` 的
+  [通用 CI](https://github.com/Misery522/translate-model/actions/runs/35495687264)
+  通过；[Desktop Windows](https://github.com/Misery522/translate-model/actions/runs/35495687275)
+  的 x64 源码验证、锁定编译与 32 项 Rust 测试通过。
+- 本轮再次验证 API 正常停止与重启时桌面进程持续响应；Bearer 配对、会话创建、
+  真实英译中、同语种中文、Python 注释和混合 Markdown 均通过本地 API 闭环。
+- Windows CRLF 同语种输入曾在内部 `TranslationRequest` 归一化后只返回 LF；
+  Agent 边界现已恢复逐字原文，并覆盖纯文本与混合文档回归测试。
 
 ## 当前阻塞与待人工验收
 
-- `rustls 0.23.45` 与 Tauri `2.11.6` 的精确安全更新已通过本地格式、编译、
-  32 项 Rust 测试和桌面静态测试；仍需由 GitHub 的全新 RustSec 数据库确认
-  RUSTSEC-2026-0285 不再出现。`proc-macro-error`、5 个 UNIC 组件和
-  `glib 0.18.5` 共 7 项警告预计仍会阻塞严格门禁。不得增加忽略项，也不能把
-  编译通过当成审计通过。
+- `rustls 0.23.45` 与 Tauri `2.11.6` 的精确安全更新已通过本地和 GitHub
+  验证。最新 RustSec 数据库扫描 480 个依赖的结果是 **0 个已知漏洞、7 个
+  denied warnings**；原 `RUSTSEC-2026-0285` 已不再出现。
+  `proc-macro-error`、5 个 UNIC 组件和 `glib 0.18.5` 仍阻塞严格门禁。
+  不得增加忽略项，也不能把编译通过当成审计通过。
 - 其余警告继续等待正式稳定依赖线消除；严格审计没有归零前不发布桌面安装包。
 - 仍需用户手工确认托盘菜单的“打开/退出”、鼠标拖动边框时的最小尺寸、
   多显示器与不同缩放比例；程序化改窗尺寸不能替代真实鼠标交互。

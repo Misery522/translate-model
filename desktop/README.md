@@ -167,8 +167,9 @@ $lockfile = Join-Path $env:GITHUB_WORKSPACE 'desktop/src-tauri/Cargo.lock'
 截至 2026-09-20，锁文件已将 `rustls` 精确更新到 `0.23.45`，修复
 RUSTSEC-2026-0285；Tauri 同时精确更新到 `2.11.6`，包含
 GHSA-w28w-mhc8-qvjv 的上游修复。本地格式、编译、32 项 Rust 测试和桌面静态测试
-均已通过，仍须以 GitHub 的全新 RustSec 数据库确认结果。`proc-macro-error`、
-5 个 UNIC 组件和 `glib 0.18.5` 的 7 项警告仍会阻止发布。
+均已通过；GitHub 使用全新 RustSec 数据库扫描 480 个依赖，结果为 **0 个已知漏洞、
+7 个 denied warnings**。`proc-macro-error`、5 个 UNIC 组件和
+`glib 0.18.5` 的 7 项警告仍会阻止发布。
 漏洞、严格警告、审计数据库更新失败都不能忽略。
 工作流不允许隐式项目/用户 `audit.toml`
 降低门禁，不使用忽略漏洞、允许过期数据库或自动修改依赖的参数。

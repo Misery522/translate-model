@@ -13,7 +13,12 @@ from langsmith.utils import tracing_is_enabled
 from pydantic import ValidationError
 
 from yijing import workflow as translation_workflow
-from yijing.translation import AppliedTerm, TranslationError, TranslationResult
+from yijing.translation import (
+    AppliedTerm,
+    TranslationError,
+    TranslationResult,
+    Translator,
+)
 from yijing.workflow import (
     AgentRequest,
     AgentResult,
@@ -43,6 +48,23 @@ class FakeTranslator:
             if entries
             else [],
             warnings=[],
+            elapsed_ms=3,
+        )
+
+
+class NormalisingSameLanguageTranslator(FakeTranslator):
+    def translate(self, request, glossary_entries=()):
+        entries = tuple(glossary_entries)
+        self.calls.append((request, entries))
+        return TranslationResult(
+            detected_language="zh-Hans",
+            detection_status="detected",
+            translation=request.text,
+            applied_terms=[],
+            warnings=[
+                "上游告警应保持不变。",
+                "源语言与目标语言相同，未执行翻译，请更换目标语言。",
+            ],
             elapsed_ms=3,
         )
 
@@ -289,6 +311,49 @@ def test_plain_text_uses_rules_and_reuses_translator() -> None:
     assert translator.calls[0][1] == (glossary_entry,)
 
 
+def test_same_language_agent_restores_original_crlf_after_translation_normalisation() -> None:
+    source = "第一段。\r\n\r\n第二段。"
+    workflow = make_workflow(translator=NormalisingSameLanguageTranslator())
+
+    result = workflow.run(
+        AgentRequest(
+            text=source,
+            target_language="zh-Hans",
+            task_mode="translate",
+        )
+    )
+
+    assert result.route == "translate_text"
+    assert result.preserved_source == source
+    assert result.translated_text == source
+    assert result.applied_terms == []
+    assert result.warnings == [
+        "上游告警应保持不变。",
+        "源语言与目标语言相同，未执行翻译，请更换目标语言。",
+    ]
+
+
+def test_explicit_same_language_agent_preserves_crlf_without_calling_model() -> None:
+    source = "第一段。\r\n\r\n第二段。"
+    model = FakeModel()
+    workflow = make_workflow(translator=Translator(model=model))
+
+    result = workflow.run(
+        AgentRequest(
+            text=source,
+            source_language="zh-Hans",
+            target_language="zh-Hans",
+            task_mode="translate",
+        )
+    )
+
+    assert result.preserved_source == source
+    assert result.translated_text == source
+    assert result.applied_terms == []
+    assert "相同" in result.warnings[-1]
+    assert model.calls == []
+
+
 def test_mixed_document_uses_translation_route_without_model_router() -> None:
     source = "Run this:\n\n```python\nprint(1)\n```\n\nThen verify it."
     translator = FakeTranslator()
@@ -305,6 +370,34 @@ def test_mixed_document_uses_translation_route_without_model_router() -> None:
     assert "```python\nprint(1)\n```" in result.annotated_copy
     assert result.annotations[0].source_fragment == "```python\nprint(1)\n```"
     assert len(translator.calls) == 1
+
+
+def test_same_language_mixed_document_restores_all_original_crlf() -> None:
+    source = (
+        "说明：\r\n\r\n"
+        "```python\r\nprint(1)\r\n```\r\n\r\n"
+        "结束。"
+    )
+    workflow = make_workflow(
+        translator=NormalisingSameLanguageTranslator(),
+        annotation_model=FakeModel(annotation_response),
+    )
+
+    result = workflow.run(
+        AgentRequest(text=source, target_language="zh-Hans")
+    )
+
+    assert result.route == "mixed_document"
+    assert result.preserved_source == source
+    assert result.translated_text == source
+    assert result.annotated_copy is not None
+    assert result.annotated_copy.startswith(f"{source}\n\n---")
+    assert result.annotations[0].source_fragment == (
+        "```python\r\nprint(1)\r\n```"
+    )
+    assert result.applied_terms == []
+    assert "正文与目标语言相同，已逐字保留" in result.warnings[-1]
+    assert "正文已翻译" not in result.warnings[-1]
 
 
 def test_mixed_document_keeps_translation_when_code_explanation_fails() -> None:

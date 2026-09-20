@@ -29,7 +29,9 @@ from yijing.translation import (
     AppliedTerm,
     TranslationError,
     TranslationRequest,
+    TranslationResult,
     Translator,
+    languages_equivalent,
     validate_local_ollama_base_url,
 )
 
@@ -145,6 +147,30 @@ class AgentResult(BaseModel):
     @classmethod
     def validate_detected_language(cls, value: Any) -> str:
         return _validated_language_tag(value)
+
+
+def _same_language_result(
+    request: AgentRequest,
+    translated: TranslationResult,
+) -> bool:
+    return (
+        translated.detection_status != "mixed"
+        and languages_equivalent(
+            translated.detected_language,
+            request.target_language,
+        )
+    )
+
+
+def _agent_translation_text(
+    request: AgentRequest,
+    translated: TranslationResult,
+) -> str:
+    """同语种短路必须恢复 Agent 边界接收到的逐字原文。"""
+
+    if _same_language_result(request, translated):
+        return request.text
+    return translated.translation
 
 
 class _ModelAnnotationItem(BaseModel):
@@ -1013,7 +1039,7 @@ class TranslationWorkflow:
             detected_language=translated.detected_language,
             detection_status=translated.detection_status,
             preserved_source=request.text,
-            translated_text=translated.translation,
+            translated_text=_agent_translation_text(request, translated),
             applied_terms=translated.applied_terms,
             warnings=translated.warnings,
         )
@@ -1030,10 +1056,15 @@ class TranslationWorkflow:
             self._glossary_entries(),
         )
         fragments = _mixed_fragments(request.text)
-        translated_text = _restore_original_fenced_blocks(
-            request.text,
-            translated.translation,
-        )
+        same_language = _same_language_result(request, translated)
+        if same_language:
+            # 同语种路径直接使用 Agent 边界原文，避免任何后处理改变换行或字节序列。
+            translated_text = request.text
+        else:
+            translated_text = _restore_original_fenced_blocks(
+                request.text,
+                translated.translation,
+            )
         annotations: list[AnnotationItem] | None = None
         annotation_warning: str | None = None
         for attempt in range(2):
@@ -1062,10 +1093,16 @@ class TranslationWorkflow:
                 )
                 for fragment in fragments
             ]
-        warnings = [
-            *translated.warnings,
-            "正文已翻译，代码块保持原样并提供独立说明；代码从未执行。",
-        ]
+        if same_language:
+            document_warning = (
+                "正文与目标语言相同，已逐字保留；"
+                "代码块保持原样并提供独立说明；代码从未执行。"
+            )
+        else:
+            document_warning = (
+                "正文已翻译，代码块保持原样并提供独立说明；代码从未执行。"
+            )
+        warnings = [*translated.warnings, document_warning]
         if annotation_warning:
             warnings.append(annotation_warning)
         return AgentResult(

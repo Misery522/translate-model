@@ -286,6 +286,32 @@ def test_long_chinese_same_language_returns_original_before_format_checks(
     assert "源语言与目标语言相同" in result.warnings[-1]
 
 
+def test_agent_same_language_crlf_returns_exact_original(
+    workflow: TranslationWorkflow,
+) -> None:
+    source = (
+        "# 发布说明\r\n\r\n"
+        "这是一个包含空行、列表和符号的本地验收文本。\r\n\r\n"
+        "- 版本：二点四\r\n"
+        "- 状态：稳定\r\n\r\n"
+        "请逐字保留。"
+    )
+
+    result = workflow.run(
+        AgentRequest(
+            text=source,
+            target_language="zh-Hans",
+            task_mode="translate",
+        )
+    )
+
+    assert result.route == "translate_text"
+    assert result.detected_language == "zh-Hans"
+    assert result.preserved_source == source
+    assert result.translated_text == source
+    assert "源语言与目标语言相同" in result.warnings[-1]
+
+
 def test_long_markdown_translation_preserves_program_owned_structure(
     translator: Translator,
 ) -> None:
