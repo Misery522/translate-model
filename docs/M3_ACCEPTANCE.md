@@ -11,8 +11,8 @@
 - 普通网页不能用查询参数进入原生模式；Tauri 不注册 Service Worker。
 - 网页 167 项测试、桌面静态 52 项测试、TypeScript 检查和生产构建通过。
 - 本机固定 Rust 1.98.0 工具链的格式检查、锁定编译及 34 项 Rust 测试通过。
-- GitHub [CI 运行 35504123713](https://github.com/Misery522/translate-model/actions/runs/35504123713)
-  通过；[Windows 桌面运行 35504123738](https://github.com/Misery522/translate-model/actions/runs/35504123738)
+- GitHub [CI 运行 35505613792](https://github.com/Misery522/translate-model/actions/runs/35505613792)
+  通过；[Windows 桌面运行 35505613793](https://github.com/Misery522/translate-model/actions/runs/35505613793)
   的 x64 源码验证与 34 项 Rust 测试通过，最终门禁按设计被严格依赖审计阻止。
 - 已在本机启动 API 和正常 Tauri 开发窗口，完成一次性配对，并用 `qwen3.5:4b`
   将英文真实翻译为中文。API 与桌面进程保持响应。
@@ -30,6 +30,9 @@
   WebView2 引导模式和宠物 CSS 最小宽度固化为配置回归门禁。
 - 托盘菜单路由与鼠标点击筛选已抽取为纯函数并由 Rust 单元测试覆盖；宠物 UI
   已覆盖初始断线重连、模型失败、任务超时、冷加载排队和会话 401 失效恢复。
+- GitHub Actions 已固定到 Node 24 运行时的官方 `checkout`、`setup-node` 与
+  `setup-uv` 完整 SHA；Linux CI 固定 Ubuntu 24.04，最新运行不再产生 Node 20
+  弃用或 `ubuntu-latest` 迁移注释。
 
 ## 当前阻塞与待人工验收
 
