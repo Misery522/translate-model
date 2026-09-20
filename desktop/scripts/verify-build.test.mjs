@@ -23,8 +23,8 @@ test('活动源码工作流固定 Actions SHA 且只上传锁文件与限定格�
   const workflow = readWorkflow();
   const actions = [...workflow.matchAll(/uses: ([^\s#]+)/g)].map((item) => item[1]);
   const allowed = new Set([
-    'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683',
-    'actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020',
+    'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
+    'actions/setup-node@820762786026740c76f36085b0efc47a31fe5020',
     'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02',
   ]);
   assert.ok(actions.length >= 3 && actions.every((item) => allowed.has(item)));
