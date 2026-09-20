@@ -24,6 +24,7 @@ from yijing.translation import (
     Translator,
     apply_glossary,
     estimate_num_predict,
+    languages_equivalent,
     protect_content,
     restore_content,
     validate_format,
@@ -336,6 +337,19 @@ def test_request_normalises_ui_labels():
     assert request.target_language == "zh-Hans"
     assert request.style == "formal"
     assert request.domain == "technology"
+
+
+@pytest.mark.parametrize(
+    ("source", "target", "expected"),
+    [
+        ("en-US", "英语", True),
+        ("简体中文", "zh-cn", True),
+        ("zh-Hant", "zh-Hans", False),
+        ("zh", "zh-Hans", False),
+    ],
+)
+def test_languages_equivalent_normalises_both_inputs(source, target, expected):
+    assert languages_equivalent(source, target) is expected
 
 
 def test_protect_and_restore_all_supported_content():

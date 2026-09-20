@@ -28,6 +28,12 @@ REQUIRED_SOURCE = {
     "scripts/export_openapi.py",
     "data/glossary.example.json", "docs/ROADMAP.md",
     "tests/test_publication.py", "tests/test_smoke_model.py",
+    "desktop/package.json", "desktop/package-lock.json", "desktop/README.md",
+    "desktop/src-tauri/Cargo.toml", "desktop/src-tauri/Cargo.lock",
+    "desktop/src-tauri/build.rs", "desktop/src-tauri/tauri.conf.json",
+    "desktop/src-tauri/src/main.rs", "desktop/src-tauri/src/bridge.rs",
+    "desktop/src-tauri/src/bridge/tests.rs", "desktop/src-tauri/capabilities/main.json",
+    "web/src/PetApp.tsx", "web/src/nativeApi.ts", "web/src/translatorTransport.ts",
 }
 
 

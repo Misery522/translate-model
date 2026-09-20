@@ -9,7 +9,7 @@ const auth = {
   device_id: 'device-1',
   device_name: '测试设备',
   auth_mode: 'cookie' as const,
-  expires_at: '2099-01-01',
+  expires_at: '2099-01-01T00:00:00.000Z',
   csrf_token: 'csrf-memory-only',
 };
 const request: TranslationRequest = {
@@ -41,8 +41,8 @@ function job(text = '你好', status: Job['status'] = 'succeeded', identity: Par
     client_request_id: 'request-1',
     generation: 1,
     status,
-    created_at: '2026-09-07',
-    expires_at: '2099-01-01',
+    created_at: '2026-09-07T00:00:00.000Z',
+    expires_at: '2099-01-01T00:00:00.000Z',
     result: status === 'succeeded' ? { ...result, translated_text: text } : null,
     error: null,
     ...identity,
@@ -64,7 +64,7 @@ function fixture() {
   vi.spyOn(api, 'createSession').mockImplementation(async () => ({
     session_id: `session-${++sequence}`,
     generation: 0,
-    expires_at: '2099-01-01',
+    expires_at: '2099-01-01T00:00:00.000Z',
   }));
   vi.spyOn(api, 'deleteSession').mockResolvedValue();
   vi.spyOn(api, 'logout').mockResolvedValue();
@@ -109,7 +109,7 @@ function httpFixture(
         JSON.stringify({
           session_id: `session-${++sequence}`,
           generation: 0,
-          expires_at: '2099-01-01',
+          expires_at: '2099-01-01T00:00:00.000Z',
         }),
         { status: 201 },
       );
@@ -132,6 +132,42 @@ function httpFixture(
     );
   return { api: new TranslationApi(), calls };
 }
+
+describe('无效工作会话不能进入可提交状态', () => {
+  it.each([
+    ['空会话编号', { session_id: '' }],
+    ['负数代次', { generation: -1 }],
+    ['无效到期时间', { expires_at: 'not-a-date' }],
+  ])('%s 只显示可恢复错误，不发送翻译', async (_label, invalid) => {
+    const fetcher = vi.fn(async (url: RequestInfo | URL) => {
+      if (String(url) === '/api/v1/auth/session') return new Response(JSON.stringify(auth));
+      if (String(url) === '/api/v1/sessions')
+        return new Response(
+          JSON.stringify({
+            session_id: 'session-1',
+            generation: 0,
+            expires_at: '2099-01-01T00:00:00.000Z',
+            ...invalid,
+          }),
+          { status: 201 },
+        );
+      throw new Error('无效会话不应发起其他请求');
+    });
+    vi.stubGlobal('fetch', fetcher);
+    render(<App api={new TranslationApi()} />);
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('工作会话无法验证'));
+    expect(screen.getByRole('button', { name: '重新连接' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /开始翻译/ })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('原文'), { target: { value: '不能发送到无效会话' } });
+    fireEvent.keyDown(screen.getByLabelText('原文'), { key: 'Enter', ctrlKey: true });
+    fireEvent.submit(screen.getByLabelText('原文').closest('form')!);
+    expect(fetcher.mock.calls.map(([url]) => String(url))).toEqual([
+      '/api/v1/auth/session',
+      '/api/v1/sessions',
+    ]);
+    expect(screen.queryByLabelText('一轮翻译')).not.toBeInTheDocument();
+  });
+});
 
 describe('真实 HTTP 响应到会话状态的回归', () => {
   it.each([

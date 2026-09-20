@@ -7,6 +7,7 @@ import type {
   TranslationRequest,
   WorkSession,
 } from './types';
+import type { TranslatorTransport } from './translatorTransport';
 
 export class ApiError extends Error {
   constructor(
@@ -106,14 +107,40 @@ export function jobResponse(value: unknown, expected: JobBinding = {}): Job {
   return job;
 }
 
-export class TranslationApi {
+export function workSessionResponse(value: unknown): WorkSession {
+  if (
+    !record(value) ||
+    typeof value.session_id !== 'string' ||
+    !value.session_id ||
+    !Number.isSafeInteger(value.generation) ||
+    Number(value.generation) < 0 ||
+    typeof value.expires_at !== 'string' ||
+    !Number.isFinite(Date.parse(value.expires_at))
+  ) {
+    throw new ApiError({
+      code: 'INVALID_RESPONSE',
+      message: '工作会话无法验证，请重新连接。',
+      retryable: true,
+    });
+  }
+  return value as unknown as WorkSession;
+}
+
+export class TranslationApi implements TranslatorTransport {
   private async request<T>(
     path: string,
     method = 'GET',
-    csrf?: string,
+    csrf?: string | null,
     body?: unknown,
     signal?: AbortSignal,
   ): Promise<T> {
+    // 接口兼容原生的 null CSRF，不表示网页可省略 Cookie 写入保护。
+    if (method !== 'GET' && path !== '/pair/exchange' && !csrf) {
+      throw new ApiError(
+        { code: 'AUTH_MODE_MISMATCH', message: '网页配对状态无效，请重新连接。', retryable: false },
+        403,
+      );
+    }
     const controller = new AbortController();
     const abort = () => controller.abort();
     signal?.addEventListener('abort', abort, { once: true });
@@ -217,13 +244,13 @@ export class TranslationApi {
       ),
     );
   }
-  logout(csrf: string, signal?: AbortSignal) {
+  logout(csrf: string | null, signal?: AbortSignal) {
     return this.request<void>('/auth/session', 'DELETE', csrf, undefined, signal);
   }
-  createSession(csrf: string, signal?: AbortSignal) {
-    return this.request<WorkSession>('/sessions', 'POST', csrf, {}, signal);
+  async createSession(csrf: string | null, signal?: AbortSignal) {
+    return workSessionResponse(await this.request<unknown>('/sessions', 'POST', csrf, {}, signal));
   }
-  deleteSession(id: string, csrf: string, signal?: AbortSignal) {
+  deleteSession(id: string, csrf: string | null, signal?: AbortSignal) {
     return this.request<void>(
       `/sessions/${encodeURIComponent(id)}`,
       'DELETE',
@@ -232,7 +259,8 @@ export class TranslationApi {
       signal,
     );
   }
-  leaveSession(id: string, csrf: string) {
+  leaveSession(id: string, csrf: string | null) {
+    if (!csrf) return;
     // 页面关闭时仅尽力清理，不将请求已发出解释为服务器已经完成取消。
     void fetch(`/api/v1/sessions/${encodeURIComponent(id)}`, {
       method: 'DELETE',
@@ -247,7 +275,7 @@ export class TranslationApi {
     session: string,
     clientRequestId: string,
     request: TranslationRequest,
-    csrf: string,
+    csrf: string | null,
     signal?: AbortSignal,
   ) {
     return jobResponse(
@@ -273,7 +301,7 @@ export class TranslationApi {
       { job_id: id },
     );
   }
-  async cancel(id: string, csrf: string, signal?: AbortSignal) {
+  async cancel(id: string, csrf: string | null, signal?: AbortSignal) {
     return jobResponse(
       await this.request<unknown>(
         `/translations/${encodeURIComponent(id)}/cancel`,

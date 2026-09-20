@@ -17,6 +17,12 @@ include web/.prettierrc.json web/.prettierignore
 recursive-include web/src *.ts *.tsx *.js *.css
 recursive-include web/public *.svg *.webmanifest
 recursive-include web/scripts *.mjs
+include desktop/package.json desktop/package-lock.json desktop/README.md desktop/.gitignore
+include desktop/src-tauri/Cargo.toml desktop/src-tauri/Cargo.lock
+include desktop/src-tauri/build.rs desktop/src-tauri/tauri.conf.json
+recursive-include desktop/src-tauri/src *.rs
+recursive-include desktop/src-tauri/capabilities *.json
+recursive-include desktop/scripts *.mjs *.ps1
 recursive-include docs *.md
 recursive-include .github *.yml *.md
 global-exclude __pycache__ *.py[cod] *.log

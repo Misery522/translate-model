@@ -1302,7 +1302,7 @@ def validate_target_output(
 ) -> None:
     """拒绝明显未翻译或文字系统与目标语言不一致的结果。"""
 
-    if output.detection_status != "mixed" and _languages_equivalent(
+    if output.detection_status != "mixed" and languages_equivalent(
         output.detected_language, request.target_language
     ):
         return
@@ -1673,17 +1673,24 @@ _RETRYABLE_RESPONSE_CODES = {
 }
 
 
-def _languages_equivalent(source: str, target: str) -> bool:
+def languages_equivalent(source: str, target: str) -> bool:
     try:
         source_normalised = normalise_language(source)
     except ValueError:
         source_normalised = source.strip()
-    if source_normalised == target:
+    try:
+        target_normalised = normalise_language(target)
+    except ValueError:
+        target_normalised = target.strip()
+    if source_normalised == target_normalised:
         return True
     # 拉丁语系的地区变体视为同一语言；简繁中文必须保留区分。
-    if source_normalised.startswith("zh") or target.startswith("zh"):
+    if source_normalised.startswith("zh") or target_normalised.startswith("zh"):
         return False
-    return source_normalised.split("-", 1)[0].lower() == target.split("-", 1)[0].lower()
+    return (
+        source_normalised.split("-", 1)[0].lower()
+        == target_normalised.split("-", 1)[0].lower()
+    )
 
 
 def _message_content(response: Any) -> Any:
@@ -1974,7 +1981,7 @@ class Translator:
         if request.domain in {"legal", "medical"}:
             warnings.append("法律或医疗译文仅供参考，请由具备资质的专业人员复核。")
 
-        if request.source_language != "auto" and _languages_equivalent(
+        if request.source_language != "auto" and languages_equivalent(
             request.source_language, request.target_language
         ):
             return TranslationResult(
@@ -2074,7 +2081,7 @@ class Translator:
 
                     # 同语种结果最终必然原样返回，因此不得让无用译文的格式或 ID
                     # 错误阻止这一安全短路。
-                    if output.detection_status != "mixed" and _languages_equivalent(
+                    if output.detection_status != "mixed" and languages_equivalent(
                         output.detected_language, request.target_language
                     ):
                         break
@@ -2124,7 +2131,7 @@ class Translator:
         elif output.detection_status == "mixed":
             warnings.append("检测到混合语言，已按上下文整体翻译。")
 
-        if output.detection_status != "mixed" and _languages_equivalent(
+        if output.detection_status != "mixed" and languages_equivalent(
             output.detected_language, request.target_language
         ):
             return TranslationResult(
@@ -2178,6 +2185,7 @@ __all__ = [
     "Translator",
     "apply_glossary",
     "estimate_num_predict",
+    "languages_equivalent",
     "normalise_language",
     "protect_content",
     "restore_content",
