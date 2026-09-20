@@ -471,6 +471,37 @@ describe('译境会话行为', () => {
     expect(characterCount('a\n中🙂')).toBe(4);
   });
 
+  it('旧 WebView 缺少 randomUUID 时仍使用安全 UUID v4 完成翻译', async () => {
+    const api = fixture();
+    vi.stubGlobal('crypto', {
+      getRandomValues(bytes: Uint8Array) {
+        bytes.fill(0);
+        return bytes;
+      },
+    });
+    await ready(api);
+    enter();
+    await screen.findByText('你好');
+    const clientRequestId = vi.mocked(api.translate).mock.calls[0][1];
+    expect(clientRequestId).toBe('00000000-0000-4000-8000-000000000000');
+  });
+
+  it('没有安全随机源时保留原文且不会卡在翻译中', async () => {
+    const api = fixture();
+    vi.stubGlobal('crypto', {});
+    await ready(api);
+    fireEvent.change(screen.getByLabelText('原文'), { target: { value: 'Keep me' } });
+    fireEvent.click(screen.getByRole('button', { name: /开始翻译/ }));
+
+    expect(screen.getByRole('status')).toHaveTextContent(
+      '当前浏览器缺少安全随机数支持，请更新浏览器后重试。',
+    );
+    expect(screen.getByLabelText('原文')).toHaveValue('Keep me');
+    expect(screen.getByRole('button', { name: /开始翻译/ })).toBeEnabled();
+    expect(screen.queryByLabelText('一轮翻译')).not.toBeInTheDocument();
+    expect(api.translate).not.toHaveBeenCalled();
+  });
+
   it('译文中的 HTML 作为文本显示，不创建可执行节点', async () => {
     const api = fixture();
     const payload = '<img src=x onerror=alert(1)> <script>bad()</script>';
