@@ -18,7 +18,7 @@ for (const [name, min, max] of [['uint8', 0, 255], ['uint32', 0, 4294967295], ['
 }
 const validateSchema = ajv.compile(schema);
 
-export function validateConfiguration(config, capability, cargo, host, bridge) {
+export function validateConfiguration(config, capability, cargo, host, bridge, petCss) {
   assert.ok(validateSchema(config), '不符合固定版本 Tauri CLI 自带的官方配置 Schema');
   assert.equal(config.build.frontendDist, '../../web/dist');
   assert.equal(config.build.devUrl, undefined, '桌面仅加载已构建的本地前端');
@@ -28,9 +28,33 @@ export function validateConfiguration(config, capability, cargo, host, bridge) {
   assert.equal(window.label, 'main');
   assert.equal(window.create, false, '窗口必须由带导航拦截的 Rust builder 创建');
   assert.equal(window.url, 'index.html?view=pet');
+  assert.equal(window.width, 360);
+  assert.equal(window.height, 540);
+  assert.equal(window.minWidth, 300);
+  assert.equal(window.minHeight, 360);
+  assert.ok(window.width >= window.minWidth, '初始宽度不得小于最小宽度');
+  assert.ok(window.height >= window.minHeight, '初始高度不得小于最小高度');
+  assert.equal(window.resizable, true);
+  assert.equal(window.alwaysOnTop, true);
+  assert.equal(window.skipTaskbar, true);
+  assert.equal(window.decorations, false);
+  assert.equal(window.transparent, false);
   assert.equal(window.devtools, false);
   assert.equal(window.incognito, true);
   assert.equal(window.dragDropEnabled, false);
+  assert.equal(config.bundle.active, true);
+  assert.deepEqual(config.bundle.targets, ['nsis']);
+  assert.deepEqual(config.bundle.icon, ['icons/icon.ico', 'icons/icon.png']);
+  assert.equal(config.bundle.windows.webviewInstallMode.type, 'downloadBootstrapper');
+  assert.equal(config.bundle.windows.webviewInstallMode.silent, true);
+  const petMinimum = petCss.match(
+    /body:has\(\.desktop-pet\)\s*\{[^}]*\bmin-width:\s*(\d+)px\s*;/,
+  );
+  assert.ok(petMinimum, '宠物样式必须声明固定像素最小宽度');
+  assert.ok(
+    Number(petMinimum[1]) <= window.minWidth,
+    '宠物样式最小宽度不得超过宿主窗口最小宽度',
+  );
   assert.deepEqual(config.app.security.capabilities, ['main']);
   assert.equal(config.app.security.dangerousDisableAssetCspModification, false);
   const csp = config.app.security.csp;
@@ -56,6 +80,16 @@ export function validateConfiguration(config, capability, cargo, host, bridge) {
   assert.ok(host.includes('.on_navigation(move |url|'));
   assert.ok(host.includes('bridge::local_navigation_allowed(url, dev_origin.as_ref())'));
   assert.ok(host.includes('NewWindowResponse::Deny'));
+  for (const item of [
+    'MenuItem::with_id(app, "show", "打开译境"',
+    'MenuItem::with_id(app, "hide", "隐藏宠物"',
+    'MenuItem::with_id(app, "quit", "退出译境"',
+  ]) {
+    assert.ok(host.includes(item), `缺少固定托盘菜单项: ${item}`);
+  }
+  assert.ok(host.includes('.show_menu_on_left_click(false)'));
+  assert.ok(host.includes('match tray_action(event.id.as_ref())'));
+  assert.ok(host.includes('if tray_click_shows(button, button_state)'));
   assert.ok(host.includes('api.prevent_close()'));
   assert.ok(host.includes('if state.accepts_command(window.label())'));
   assert.ok(host.includes('if app.state::<HostState>().begin_exit()'));
@@ -74,7 +108,7 @@ export function validateConfiguration(config, capability, cargo, host, bridge) {
 }
 
 export function readConfiguration() {
-  return [JSON.parse(read('src-tauri/tauri.conf.json')), JSON.parse(read('src-tauri/capabilities/main.json')), read('src-tauri/Cargo.toml'), read('src-tauri/src/main.rs'), read('src-tauri/src/bridge.rs')];
+  return [JSON.parse(read('src-tauri/tauri.conf.json')), JSON.parse(read('src-tauri/capabilities/main.json')), read('src-tauri/Cargo.toml'), read('src-tauri/src/main.rs'), read('src-tauri/src/bridge.rs'), read('../web/src/pet.css')];
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
