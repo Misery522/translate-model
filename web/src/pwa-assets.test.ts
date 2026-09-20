@@ -152,6 +152,25 @@ function pixelAt(image: DecodedPng, x: number, y: number): number[] {
 }
 
 describe('PWA 安装图标', () => {
+  it('manifest 固定域名根路径、独立窗口与产品元数据', () => {
+    const manifest = JSON.parse(
+      readFileSync(resolve(webRoot, 'public/manifest.webmanifest'), 'utf8'),
+    ) as Record<string, unknown>;
+    expect(manifest).toMatchObject({
+      id: '/',
+      name: '译境 · 随手翻译',
+      short_name: '译境',
+      lang: 'zh-CN',
+      start_url: '/',
+      scope: '/',
+      display: 'standalone',
+      background_color: '#f3f5ef',
+      theme_color: '#f3f5ef',
+    });
+    expect(manifest.description).toEqual(expect.any(String));
+    expect((manifest.description as string).trim()).not.toBe('');
+  });
+
   it('manifest 为普通安装和 maskable 场景声明标准 PNG', () => {
     const manifest = JSON.parse(
       readFileSync(resolve(webRoot, 'public/manifest.webmanifest'), 'utf8'),
@@ -265,5 +284,39 @@ describe('PWA 安装图标', () => {
       expect(isPublicShellAsset(path)).toBe(true);
     }
     expect(isPublicShellAsset('private-icon.png')).toBe(false);
+  });
+
+  it.each([
+    'index.html',
+    'manifest.webmanifest',
+    'pet-icon.svg',
+    'pet-icon-192.png',
+    'pet-icon-512.png',
+    'pet-icon-maskable-512.png',
+    'apple-touch-icon.png',
+    'assets/app.js',
+    'assets/app.css',
+    'assets/font.woff2',
+    'assets/decor.svg',
+  ])('静态壳白名单接受公开产物：%s', (path) => {
+    expect(isPublicShellAsset(path)).toBe(true);
+  });
+
+  it.each([
+    'sw.js',
+    'THIRD_PARTY_LICENSES.txt',
+    'openapi.json',
+    'api/v1/health',
+    'assets/nested/app.js',
+    'assets/app.js.map',
+    'assets/config.json',
+    '/assets/app.js',
+    'assets\\app.js',
+    'assets/app.js?token=secret',
+    'assets/app.js#fragment',
+    '../assets/app.js',
+    'assets/../app.js',
+  ])('静态壳白名单拒绝私密或越界路径：%s', (path) => {
+    expect(isPublicShellAsset(path)).toBe(false);
   });
 });
