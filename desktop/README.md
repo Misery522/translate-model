@@ -164,9 +164,12 @@ $lockfile = Join-Path $env:GITHUB_WORKSPACE 'desktop/src-tauri/Cargo.lock'
 & "$toolRoot/bin/cargo-audit.exe" audit --file $lockfile --deny warnings
 ```
 
-截至 2026-09-15，严格审计仍阻止发布：`rustls 0.23.44` 命中
-RUSTSEC-2026-0285，另有 `proc-macro-error`、5 个 UNIC 组件和 `glib 0.18.5`
-共 7 项警告。漏洞、严格警告、审计数据库更新失败都不能忽略。
+截至 2026-09-20，锁文件已将 `rustls` 精确更新到 `0.23.45`，修复
+RUSTSEC-2026-0285；Tauri 同时精确更新到 `2.11.6`，包含
+GHSA-w28w-mhc8-qvjv 的上游修复。本地格式、编译、32 项 Rust 测试和桌面静态测试
+均已通过，仍须以 GitHub 的全新 RustSec 数据库确认结果。`proc-macro-error`、
+5 个 UNIC 组件和 `glib 0.18.5` 的 7 项警告仍会阻止发布。
+漏洞、严格警告、审计数据库更新失败都不能忽略。
 工作流不允许隐式项目/用户 `audit.toml`
 降低门禁，不使用忽略漏洞、允许过期数据库或自动修改依赖的参数。
 审计成功仅表示当前数据库未发现需阻止的已知问题，不等于完整安全审计或许可审查通过。
@@ -211,8 +214,9 @@ SHA256 清单及发布审查。校验和不能替代代码签名或可信来源�
 
 ## 版本与官方依据
 
-- Tauri `2.11.5`、tauri-build `2.6.3`：
+- Tauri `2.11.6`、tauri-build `2.6.3`：
   [Tauri crate](https://docs.rs/tauri/latest/tauri/)、
+  [Tauri 2.11.6 安全修复](https://github.com/tauri-apps/tauri/releases/tag/tauri-v2.11.6)、
   [命令 ACL 生成](https://docs.rs/tauri-build/latest/tauri_build/struct.AppManifest.html)。
 - CLI `2.11.4`：[@tauri-apps/cli](https://www.npmjs.com/package/@tauri-apps/cli)。
 - global-shortcut `2.3.2`：
