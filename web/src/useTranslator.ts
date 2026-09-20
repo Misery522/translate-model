@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError, describeError, jobResponse, pause, TranslationApi } from './api';
 import type { JobBinding } from './api';
+import { createRequestId } from './requestId';
 import type { DeviceAuth, Options, TranslationRequest, Turn, WorkSession } from './types';
 
 const defaultApi = new TranslationApi();
@@ -274,10 +275,16 @@ export function useTranslator(api = defaultApi) {
       setNotice('当前离线。内容不会自动排队或重新发送。');
       return;
     }
+    let turnId: string;
+    try {
+      turnId = createRequestId();
+    } catch {
+      setNotice('当前浏览器缺少安全随机数支持，请更新浏览器后重试。');
+      return;
+    }
     const device = authRef.current;
     const work = sessionRef.current;
     const operation = begin('translating');
-    const turnId = crypto.randomUUID();
     operation.turnId = turnId;
     updateCanCancel(true);
     setTurns((previous) =>

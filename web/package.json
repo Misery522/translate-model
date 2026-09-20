@@ -8,12 +8,13 @@
   },
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && npm run verify:dist",
     "typecheck": "tsc -b",
     "test": "node scripts/test.mjs",
     "test:watch": "vitest",
     "preview": "vite preview --host 127.0.0.1",
     "generate:api": "openapi-typescript openapi.json -o src/api.generated.ts",
+    "verify:dist": "node scripts/verify-dist.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
