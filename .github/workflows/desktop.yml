@@ -224,7 +224,7 @@ jobs:
     name: Desktop required checks
     if: ${{ always() }}
     needs: [windows, audit]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
       - name: A bootstrap artifact cannot satisfy the release gate
