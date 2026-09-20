@@ -3,10 +3,12 @@
 import asyncio
 import json
 import multiprocessing
+import signal
 import time
 
 import pytest
 
+import yijing_api.worker as worker_module
 from yijing_api.worker import ProcessRunner
 
 
@@ -25,6 +27,40 @@ def controlled_child(connection):
 
 def crashed_child(connection):
     connection.close()
+
+
+class EndOfInputConnection:
+    def __init__(self, before_receive):
+        self.before_receive = before_receive
+        self.closed = False
+
+    def recv_bytes(self, _maximum):
+        self.before_receive()
+        raise EOFError
+
+    def close(self):
+        self.closed = True
+
+
+def test_worker_ignores_supervisor_sigint_before_waiting(monkeypatch):
+    configured = []
+
+    monkeypatch.setattr(
+        worker_module.signal,
+        "signal",
+        lambda signum, handler: configured.append((signum, handler)),
+    )
+    monkeypatch.setattr("yijing.service.create_default_service", object)
+
+    def assert_signal_is_configured():
+        assert configured == [(signal.SIGINT, signal.SIG_IGN)]
+
+    connection = EndOfInputConnection(assert_signal_is_configured)
+
+    worker_module.worker_main(connection)
+
+    assert configured == [(signal.SIGINT, signal.SIG_IGN)]
+    assert connection.closed
 
 
 def test_real_worker_cancel_reaps_before_restart_and_shutdown():
