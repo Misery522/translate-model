@@ -9,11 +9,11 @@
 - 小窗具备服务地址配置、一次性配对、目标语言、翻译/注解、重试、复制、停止和清空。
 - 原生 Bearer 仅在 Rust 内存；错误固定脱敏，地址切换会撤销旧连接，迟到结果被丢弃。
 - 普通网页不能用查询参数进入原生模式；Tauri 不注册 Service Worker。
-- 网页 162 项测试、桌面静态 34 项测试、TypeScript 检查和生产构建通过。
-- 本机固定 Rust 1.98.0 工具链的格式检查、锁定编译及 32 项 Rust 测试通过。
-- GitHub [CI 运行 34974350081](https://github.com/Misery522/translate-model/actions/runs/34974350081)
-  通过；[Windows 桌面运行 34974350284](https://github.com/Misery522/translate-model/actions/runs/34974350284)
-  的 x64 源码验证通过，最终门禁按设计被严格依赖审计阻止。
+- 网页 167 项测试、桌面静态 52 项测试、TypeScript 检查和生产构建通过。
+- 本机固定 Rust 1.98.0 工具链的格式检查、锁定编译及 34 项 Rust 测试通过。
+- GitHub [CI 运行 35504123713](https://github.com/Misery522/translate-model/actions/runs/35504123713)
+  通过；[Windows 桌面运行 35504123738](https://github.com/Misery522/translate-model/actions/runs/35504123738)
+  的 x64 源码验证与 34 项 Rust 测试通过，最终门禁按设计被严格依赖审计阻止。
 - 已在本机启动 API 和正常 Tauri 开发窗口，完成一次性配对，并用 `qwen3.5:4b`
   将英文真实翻译为中文。API 与桌面进程保持响应。
 - 已通过原生窗口测试确认关闭按钮只隐藏窗口，`Ctrl+Shift+T` 能重新唤回；
@@ -22,14 +22,14 @@
   WebView 因而停在 `about:blank`。现在只允许实际开发源的同源
   `/index.html?view=pet`，其他端口、路径或查询仍被拒绝，并有回归测试。
 - Cargo.lock 共 480 个条目；除本项目外均为带校验和的 crates.io 来源，直接版本一致。
-- 安全依赖基线 `d8e947e` 的
-  [通用 CI](https://github.com/Misery522/translate-model/actions/runs/35495687264)
-  通过；[Desktop Windows](https://github.com/Misery522/translate-model/actions/runs/35495687275)
-  的 x64 源码验证、锁定编译与 32 项 Rust 测试通过。
 - 本轮再次验证 API 正常停止与重启时桌面进程持续响应；Bearer 配对、会话创建、
   真实英译中、同语种中文、Python 注释和混合 Markdown 均通过本地 API 闭环。
 - Windows CRLF 同语种输入曾在内部 `TranslationRequest` 归一化后只返回 LF；
   Agent 边界现已恢复逐字原文，并覆盖纯文本与混合文档回归测试。
+- 已将宿主初始/最小尺寸、缩放、置顶、任务栏、边框、非透明背景、NSIS 目标、
+  WebView2 引导模式和宠物 CSS 最小宽度固化为配置回归门禁。
+- 托盘菜单路由与鼠标点击筛选已抽取为纯函数并由 Rust 单元测试覆盖；宠物 UI
+  已覆盖初始断线重连、模型失败、任务超时、冷加载排队和会话 401 失效恢复。
 
 ## 当前阻塞与待人工验收
 
@@ -40,8 +40,9 @@
   不得增加忽略项，也不能把编译通过当成审计通过。
 - 其余警告继续等待正式稳定依赖线消除；严格审计没有归零前不发布桌面安装包。
 - 仍需用户手工确认托盘菜单的“打开/退出”、鼠标拖动边框时的最小尺寸、
-  多显示器与不同缩放比例；程序化改窗尺寸不能替代真实鼠标交互。
-- 断网、Ollama 离线、模型冷加载、地址错误与后端重启的完整交互提示仍需本机验收。
+  多显示器与不同缩放比例；程序化配置门禁和路由单元测试不能替代真实鼠标交互。
+- 初始断网、模型失败/超时、冷加载排队和会话失效已有 UI 回归测试；Ollama
+  真正离线、地址错误与后端重启的完整视觉交互仍需本机人工验收。
 - Windows 安装/卸载、第三方 Rust 许可与版权文本、代码签名和正式分发渠道均未完成。
 - 当前 Visual Studio Community 2026 Insiders 足以进行 Alpha 开发；正式打包前应使用
   受支持的稳定版 Visual Studio/Build Tools 重新验证完整流程。
