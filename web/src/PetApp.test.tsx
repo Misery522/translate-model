@@ -91,6 +91,22 @@ function submittedJob(
   };
 }
 
+function failedJob(
+  api: NativeTranslationApi,
+  code: 'MODEL_REQUEST_FAILED' | 'TASK_TIMEOUT',
+  message: string,
+): Job {
+  return {
+    ...submittedJob(api, code === 'TASK_TIMEOUT' ? 'timed_out' : 'failed'),
+    error: {
+      code,
+      message,
+      retryable: true,
+      request_id: 'pet-error-test',
+    },
+  };
+}
+
 function fixture(configured = true) {
   const state: BackendStatus = {
     origin: configured ? oldOrigin : null,
@@ -321,6 +337,77 @@ describe('宠物小窗与真实共享翻译状态机', () => {
     await screen.findByText('暂时无法隐藏窗口；可继续在此翻译。');
     expect(screen.queryByText('window failed')).not.toBeInTheDocument();
     expect(screen.getByLabelText('想翻译什么？')).toBeInTheDocument();
+  });
+
+  it('初始连接未确认时显示离线状态并允许手动重连', async () => {
+    const context = fixture();
+    vi.mocked(context.api.auth).mockRejectedValueOnce(unconfirmed());
+    mount(context);
+    const reconnect = await screen.findByRole('button', { name: '重新连接' });
+    const conversation = screen.getByRole('region', { name: '小译文字翻译' });
+    expect(within(conversation).getByRole('status')).toHaveTextContent('连接状态尚未确认。');
+    expect(screen.queryByLabelText('想翻译什么？')).not.toBeInTheDocument();
+    expect(context.api.translate).not.toHaveBeenCalled();
+
+    fireEvent.click(reconnect);
+    await screen.findByLabelText('想翻译什么？');
+    expect(context.api.auth).toHaveBeenCalledTimes(2);
+    expect(context.api.createSession).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['MODEL_REQUEST_FAILED', '本次模型处理失败，请调整内容后重试。'],
+    ['TASK_TIMEOUT', '本次处理超时，请重试。'],
+  ] as const)('%s 只生成一个可恢复的行内错误轮次', async (code, message) => {
+    const context = fixture();
+    vi.mocked(context.api.translate).mockImplementation(async () =>
+      failedJob(context.api, code, message),
+    );
+    await ready(context);
+    send('请保留这段原文');
+
+    const turn = await screen.findByLabelText('一轮独立翻译');
+    expect(within(turn).getByText('请保留这段原文')).toBeInTheDocument();
+    expect(within(turn).getByText(message)).toBeInTheDocument();
+    expect(within(turn).getByRole('button', { name: '重试此轮' })).toBeEnabled();
+    expect(screen.getAllByLabelText('一轮独立翻译')).toHaveLength(1);
+    expect(context.api.translate).toHaveBeenCalledTimes(1);
+  });
+
+  it('模型冷加载排队到运行再成功时只提交一次', async () => {
+    const context = fixture();
+    vi.mocked(context.api.translate).mockImplementation(async () =>
+      submittedJob(context.api, 'queued'),
+    );
+    vi.mocked(context.api.job)
+      .mockImplementationOnce(async () => submittedJob(context.api, 'running'))
+      .mockImplementationOnce(async () => submittedJob(context.api));
+    await ready(context);
+    send('Cold start');
+
+    await screen.findByText('已加入电脑的处理队列…');
+    await screen.findByText('正在翻译，请稍等片刻…');
+    await screen.findByText('译文：Cold start');
+    expect(context.api.translate).toHaveBeenCalledTimes(1);
+    expect(context.api.job).toHaveBeenCalledTimes(2);
+    expect(screen.getAllByLabelText('一轮独立翻译')).toHaveLength(1);
+  });
+
+  it('轮询收到 401 时清除旧连接并回到配对界面', async () => {
+    const context = fixture();
+    vi.mocked(context.api.translate).mockImplementation(async () =>
+      submittedJob(context.api, 'running'),
+    );
+    vi.mocked(context.api.job).mockRejectedValueOnce(unpaired());
+    await ready(context);
+    send('旧会话内容');
+
+    await screen.findByLabelText('一次性配对码');
+    const conversation = screen.getByRole('region', { name: '小译文字翻译' });
+    expect(within(conversation).getByRole('status')).toHaveTextContent('设备配对已过期');
+    expect(screen.queryByText('旧会话内容')).not.toBeInTheDocument();
+    expect(context.api.translate).toHaveBeenCalledTimes(1);
+    expect(context.api.job).toHaveBeenCalledTimes(1);
   });
 
   it('代码、注释与风险中的 HTML 都按纯文本呈现，不生成脚本或图片元素', async () => {
