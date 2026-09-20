@@ -18,6 +18,27 @@ struct HostState {
     exiting: AtomicBool,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum TrayAction {
+    Show,
+    Hide,
+    Quit,
+    Ignore,
+}
+
+fn tray_action(id: &str) -> TrayAction {
+    match id {
+        "show" => TrayAction::Show,
+        "hide" => TrayAction::Hide,
+        "quit" => TrayAction::Quit,
+        _ => TrayAction::Ignore,
+    }
+}
+
+fn tray_click_shows(button: MouseButton, state: MouseButtonState) -> bool {
+    button == MouseButton::Left && state == MouseButtonState::Up
+}
+
 impl HostState {
     fn accepts_command(&self, label: &str) -> bool {
         label == "main" && !self.exiting.load(Ordering::SeqCst)
@@ -129,14 +150,14 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                 .tooltip("译境 · Ctrl+Shift+T 打开")
                 .menu(&menu)
                 .show_menu_on_left_click(false)
-                .on_menu_event(|app, event| match event.id.as_ref() {
-                    "show" => show_main(app),
-                    "hide" => {
+                .on_menu_event(|app, event| match tray_action(event.id.as_ref()) {
+                    TrayAction::Show => show_main(app),
+                    TrayAction::Hide => {
                         if let Some(window) = app.get_webview_window("main") {
                             let _ = window.hide();
                         }
                     }
-                    "quit" => {
+                    TrayAction::Quit => {
                         if app.state::<HostState>().begin_exit() {
                             let handle = app.clone();
                             tauri::async_runtime::spawn(async move {
@@ -148,18 +169,18 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                             });
                         }
                     }
-                    _ => {}
+                    TrayAction::Ignore => {}
                 })
                 .on_tray_icon_event(|tray, event| {
-                    if matches!(
-                        event,
-                        TrayIconEvent::Click {
-                            button: MouseButton::Left,
-                            button_state: MouseButtonState::Up,
-                            ..
+                    if let TrayIconEvent::Click {
+                        button,
+                        button_state,
+                        ..
+                    } = event
+                    {
+                        if tray_click_shows(button, button_state) {
+                            show_main(tray.app_handle());
                         }
-                    ) {
-                        show_main(tray.app_handle());
                     }
                 })
                 .build(app)?;
@@ -227,5 +248,21 @@ mod tests {
         // 清除内存凭据也不能重新打开退出中的命令入口。
         state.bridge.clear();
         assert!(!state.accepts_command("main"));
+    }
+
+    #[test]
+    fn tray_menu_routes_only_known_actions() {
+        assert_eq!(tray_action("show"), TrayAction::Show);
+        assert_eq!(tray_action("hide"), TrayAction::Hide);
+        assert_eq!(tray_action("quit"), TrayAction::Quit);
+        assert_eq!(tray_action("unexpected"), TrayAction::Ignore);
+    }
+
+    #[test]
+    fn tray_click_opens_only_on_left_button_release() {
+        assert!(tray_click_shows(MouseButton::Left, MouseButtonState::Up));
+        assert!(!tray_click_shows(MouseButton::Left, MouseButtonState::Down));
+        assert!(!tray_click_shows(MouseButton::Right, MouseButtonState::Up));
+        assert!(!tray_click_shows(MouseButton::Middle, MouseButtonState::Up));
     }
 }
