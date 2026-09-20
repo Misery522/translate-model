@@ -7,6 +7,7 @@ import contextlib
 import json
 import multiprocessing
 import os
+import signal
 from typing import Protocol
 
 MAX_RESULT_BYTES = 1024 * 1024
@@ -18,6 +19,9 @@ class Runner(Protocol):
 
 
 def worker_main(connection) -> None:
+    # 交互式 Ctrl+C 由 API 主进程负责；spawn worker 只接受主进程的受控回收。
+    # 否则同一控制台会把 SIGINT 同时发给两者，子进程会在 Pipe 等待处打印回溯。
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
     # 第三方日志不能把用户内容带回 API 控制台；业务异常转换为固定错误码。
     with (
         open(os.devnull, "w", encoding="utf-8") as sink,
