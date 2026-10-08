@@ -10,6 +10,8 @@
 本开发分支新增受限原生 Android 私人试用客户端，可构建独立图标的 debug APK，
 无需外部浏览器。源码和本机构建已验证，手机安装与真机验收尚未完成；
 操作和下一阶段安排见 [Android 试用说明](docs/ANDROID_NATIVE.md)。
+已准备[Redmi 真机验收记录](docs/REDMI_ACCEPTANCE.md)和
+[身份、文字伙伴与语音设计草案](docs/NEXT_FEATURE_DESIGN.md)；草案不表示新增功能已实现。
 已完成、待验收、当前问题和下一步统一记录在
 [项目动态进度](docs/PROJECT_STATUS.md)，每轮开发后核对更新，不设置后台定时任务。
 核心已独立为 `yijing` 包，Gradio 经统一服务调用既有翻译工作流，见

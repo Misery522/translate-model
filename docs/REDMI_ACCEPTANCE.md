@@ -14,15 +14,20 @@
 | System WebView | 152.0.7977.87，用户报告 |
 | 安装状态 | 未安装；用户选择先查看说明 |
 | 验收日期 / 操作者 | 待填写 |
-| 源码分支 / 完整提交 SHA | 待填写本次候选，不照抄旧基线 |
-| APK 对应源码 SHA / 构建日期 | 待填写，与后续文档提交区分 |
-| APK SHA256 / 大小 | 待填写实际候选包的检查结果 |
-| 调试签名 SHA256 / 包名 / 版本 | 待填写实际候选包的检查结果 |
-| 同一提交的 push / PR CI 链接 | 待填写最新结果，不用历史绿灯代替 |
+| 源码分支 / 本机验收基线 | `fix/client-integration` / `edec23e9095b86e572a9d7feee687d801329038f`；后续文档提交不混称业务构建源码 |
+| APK 对应源码 SHA / 构建日期 | `edec23e9095b86e572a9d7feee687d801329038f` / 2026-10-09 北京时间；debug 构建与严格 lint 通过 |
+| APK SHA256 / 大小 | `9ddb7330baee28478f3bb7edf194e8c8ff7856667fc3ca651822027e60d7e189` / 1,321,312 字节 |
+| 调试签名 SHA256 | `0230ee6df1afa743102833e93f93bdc7b7a727f7c1b50c534c4cceb6ab33ef1b`；Android Debug，非正式发布签名 |
+| 包名 / 版本 | `io.github.misery522.yijing.alpha` / `0.4.0-native-alpha.1`，versionCode 1 |
+| 同一提交的 push / PR CI | 以[候选分支最新同一 SHA 的两类 CI](https://github.com/Misery522/translate-model/actions?query=branch%3Afix%2Fclient-integration)为准，不用历史绿灯代替 |
 | 安装授权 | 未获得；不能由“继续开发”推导手机安装许可 |
 
 Android 与 WebView 版本高于首版下限，只说明版本条件满足；不证明受限消息桥、
 实际 UI 或所有手机兼容。源码、APK 本机检查、真机验收和正式发布分别记录。
+
+候选包本地路径为项目内 `mobile/android/app/build/outputs/apk/debug/app-debug.apk`，
+没有公开上传。内置界面、完整许可、API 26/36、仅 INTERNET 权限和 v2 调试签名
+均已核验。哈希用于核对同一个候选，不表示真机验收或正式合规发布通过。
 
 ## 2. 安装前准备（不需要先安装 App）
 
