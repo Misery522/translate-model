@@ -1,6 +1,7 @@
 # Android 安装版试用与下一步
 
 更新：2026-10-09。开发顺序由用户调整为 **可安装 Android 文字 App → 真机稳定 → 语音**。
+最新工作状态、CI 问题和执行顺序统一记录在[项目动态进度](PROJECT_STATUS.md)。
 
 ## 当前实现
 
@@ -21,7 +22,7 @@
 ## 开发和构建
 
 在纯英文路径 Git worktree 中打开 `mobile/android`，而不是旧 C++ 模板。
-本机开发树为 `D:\Yijing\translate-model-android-native`，分支 `feat/android-native-host`；
+开发分支为 `feat/android-native-host`；
 堆叠于 Android 协议/环境基础 `feat/android-client`，不混入桌面审计分支。
 
 ```powershell
@@ -34,10 +35,11 @@ npm --prefix mobile run build
 ```
 
 Java 单测用明确的项目解释器和已核验的 JDK；共享 60 秒截止，不发送真实请求：
+下面的 JDK 路径仅为示例，须替换为环境说明中核验过的实际目录。
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/run-android-unit-tests.py `
-  --jdk-home 'C:\Users\1\AppData\Local\Yijing\toolchains\jdk-21.0.12.1+1'
+  --jdk-home 'C:\Dev\jdk-21'
 ```
 
 APK 为 `mobile/android/app/build/outputs/apk/debug/app-debug.apk`。
@@ -51,6 +53,10 @@ Android 界面 20 项、Java 核心/宿主/模拟 HTTPS 共 127 项通过。Ruff
 API 26/36、仅 INTERNET 权限与调试 v2 签名已核验。这些不是手机真机验收。
 首次远程构建暴露两份遗漏的 Maven 元数据摘要，已从官方内容核对并补齐；新的空依赖
 缓存构建通过。最新远程 CI 的最终状态单独记录在 PR，不用旧成功记录代替。
+
+截至 2026-10-09，PR 事件 CI 的 14 项检查通过，但相同提交的另一轮 push CI
+出现 Linux 源码包 PowerShell 探针 10 秒超时，正在定位；不能把一次通过写成所有
+检查已稳定。修复及最终同一提交的两类 CI 结果以项目动态进度和 PR 为准。
 
 ## 安装与配对（待用户授权和操作）
 
@@ -78,7 +84,8 @@ API 26/36、仅 INTERNET 权限与调试 v2 签名已核验。这些不是手机
 
 ## 真机验收清单（尚未完成）
 
-- [ ] 登记 Redmi K70 的 Android、HyperOS（用户报告 3.0.307.0）与 System WebView 版本。
+- [x] 用户报告 Redmi K70 的 Android 16、HyperOS 3.0.307.0。
+- [ ] 登记 System WebView 版本并验证受限桥能力；不能仅凭 Android 版本判断。
 - [ ] 安装、图标、启动、返回键、键盘遮挡、转屏和许可页。
 - [ ] 正确/错误/过期配对码；401、注销未确认后的首次重配对。
 - [ ] 中英日韩、同语种、长文、Markdown、术语与 Python 注解实际结果。
@@ -91,12 +98,13 @@ API 26/36、仅 INTERNET 权限与调试 v2 签名已核验。这些不是手机
 
 ## 试用后的项目安排
 
-1. 先修复 Redmi 真机问题，经独立 PR 和最新 CI 审查；不自动合并或创建版本。
-2. PWA 保留私人回退入口；补蜂窝、主屏幕、熄屏和后端重启验收。
-3. Windows 宠物继续 Rust 严格审计、托盘/多屏/DPI、安装/卸载和许可整改；不放宽发布门槛。
-4. 明确授权后设计持久设备身份与更便利的后台恢复，再改进文字伙伴及宠物状态反馈。
-5. 单独设计录音接口和隐私：按住说话 → 本地 ASR/TTS → 单段翻译 → 连续双向口译。
-6. 分别取得华为与 iPhone 真机环境；原生鸿蒙与 Android 兼容层分开判断，iOS 原生构建
+1. 先完成当前 CI 超时定位和文档收口，准备安装资料；手机继续等待单独安装确认。
+2. 授权后完成 Redmi 验收并修复实际问题，经独立 PR 和最新 CI 审查；不自动合并或创建版本。
+3. PWA 保留私人回退入口；补蜂窝、主屏幕、熄屏和后端重启验收。
+4. Windows 宠物继续 Rust 严格审计、托盘/多屏/DPI、安装/卸载和许可整改；不放宽发布门槛。
+5. 明确授权后设计持久设备身份与更便利的后台恢复，再改进文字伙伴及宠物状态反馈。
+6. 单独设计录音接口和隐私：按住说话 → 本地 ASR/TTS → 单段翻译 → 连续双向口译。
+7. 分别取得华为与 iPhone 真机环境；原生鸿蒙与 Android 兼容层分开判断，iOS 原生构建
    需要 macOS/Xcode。手机离线模型、OCR、授权快捷取词和系统悬浮宠物另行评估。
 
 未经确认不合并 PR、不正式签名、不公开分发、不开放 Funnel/公网/Ollama端口，

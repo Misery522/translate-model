@@ -181,24 +181,42 @@ function Invoke-AndroidProcess {
         [string]$Executable,
         [AllowEmptyCollection()][string[]]$Arguments = @(),
         [hashtable]$Layout,
-        [ValidateRange(1, 3600)][int]$LimitSeconds
+        [ValidateRange(1, 3600)][int]$LimitSeconds,
+        [switch]$TracePhases
     )
     $process = [Diagnostics.Process]::new()
+    $phaseClock = [Diagnostics.Stopwatch]::StartNew()
+    # 探针只输出固定阶段及耗时；不记录参数、路径、环境变量或工具正文。
+    $trace = {
+        param([string]$Phase)
+        if ($TracePhases) {
+            [Console]::Error.WriteLine("android-process phase=$Phase elapsed_ms=$($phaseClock.ElapsedMilliseconds)")
+            [Console]::Error.Flush()
+        }
+    }
     try {
+        & $trace 'start-info-begin'
         $process.StartInfo = New-AndroidProcessStartInfo $Executable $Arguments $Layout
+        & $trace 'start-info-ready'
+        # 执行截止时间从实际启动前开始，启动和输出共享同一工具时限。
         $clock = [Diagnostics.Stopwatch]::StartNew()
+        & $trace 'child-start-begin'
         $null = $process.Start()
+        & $trace 'child-started'
         $stdout = $process.StandardOutput.ReadToEndAsync()
         $stderr = $process.StandardError.ReadToEndAsync()
         $outputTasks = [Threading.Tasks.Task]::WhenAll([Threading.Tasks.Task[]]@($stdout, $stderr))
+        & $trace 'child-wait-begin'
         $remaining = [Math]::Max(0, ($LimitSeconds * 1000) - [int]$clock.ElapsedMilliseconds)
         $timedOut = -not $process.WaitForExit($remaining)
         if (-not $timedOut) {
+            & $trace 'child-exited'
             # 父进程退出不代表管道已关闭，进程与输出共同使用同一个截止时间。
             $remaining = [Math]::Max(0, ($LimitSeconds * 1000) - [int]$clock.ElapsedMilliseconds)
             $timedOut = -not $outputTasks.Wait($remaining)
         }
         if ($timedOut) {
+            & $trace 'timed-out'
             if (-not $process.HasExited) {
                 try {
                     # 只终止本函数创建、仍可定位的进程树，不按名称结束其他工具。
@@ -221,12 +239,14 @@ function Invoke-AndroidProcess {
             $process.StandardError.Dispose()
             throw [TimeoutException]::new("Android 开发命令或输出超过 $LimitSeconds 秒；已停止本次仍可定位的进程并关闭读流。")
         }
+        & $trace 'output-completed'
         [Console]::Out.Write($stdout.GetAwaiter().GetResult())
         [Console]::Error.Write($stderr.GetAwaiter().GetResult())
         return $process.ExitCode
     }
     finally {
         $process.Dispose()
+        & $trace 'disposed'
     }
 }
 

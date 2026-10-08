@@ -4,19 +4,35 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import signal
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "android-env.ps1"
+PHASE_PATTERN = re.compile(
+    r"(?:android-probe phase=(?:entered|dot-source-begin|dot-source-ready|"
+    r"location-begin|location-ready|fixture-ready|child-call-begin|child-call-ready)|"
+    r"android-process phase=(?:start-info-begin|start-info-ready|child-start-begin|"
+    r"child-started|child-wait-begin|child-exited|timed-out|output-completed|disposed))"
+    r" elapsed_ms=\d+"
+)
 
 
 def powershell_literal(value: str) -> str:
     return "'" + value.replace("'", "''") + "'"
+
+
+def probe_phase_lines(output: str | bytes | None) -> list[str]:
+    """只允许固定阶段标记进入诊断，不转储命令、环境或子进程正文。"""
+    if isinstance(output, bytes):
+        output = output.decode("utf-8", errors="replace")
+    return [line for line in (output or "").splitlines() if PHASE_PATTERN.fullmatch(line)]
 
 
 def run_probe(source: str, *, timeout: float = 10) -> subprocess.CompletedProcess[str]:
@@ -24,20 +40,50 @@ def run_probe(source: str, *, timeout: float = 10) -> subprocess.CompletedProces
     if powershell is None:
         pytest.skip("动态测试需要 PowerShell 7，不要求 Android SDK 或 JDK 安装")
     probe = (
+        "[Console]::Error.WriteLine('android-probe phase=entered elapsed_ms=0');"
+        "[Console]::Error.Flush();"
+        "$probeClock=[Diagnostics.Stopwatch]::StartNew();"
+        "function Write-AndroidProbePhase([string]$Phase) {"
+        "[Console]::Error.WriteLine(\"android-probe phase=$Phase elapsed_ms=$($probeClock.ElapsedMilliseconds)\");"
+        "[Console]::Error.Flush() };"
         "$ErrorActionPreference='Stop';"
         "[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false);"
-        f". {powershell_literal(str(SCRIPT))}; {source}"
+        "Write-AndroidProbePhase 'dot-source-begin';"
+        f". {powershell_literal(str(SCRIPT))};"
+        "Write-AndroidProbePhase 'dot-source-ready';"
+        f"{source}"
     )
-    return subprocess.run(
-        [powershell, "-NoProfile", "-NonInteractive", "-Command", probe],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        timeout=timeout,
-        check=False,
-        env={**os.environ, "PYTHONUTF8": "1"},
-        creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+    started = time.monotonic()
+    print("android-probe phase=launch-begin elapsed_ms=0", file=sys.stderr, flush=True)
+    try:
+        result = subprocess.run(
+            [powershell, "-NoProfile", "-NonInteractive", "-Command", probe],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=timeout,
+            check=False,
+            env={**os.environ, "PYTHONUTF8": "1"},
+            creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+        )
+    except subprocess.TimeoutExpired as error:
+        elapsed_ms = int((time.monotonic() - started) * 1000)
+        phases = probe_phase_lines(error.stderr)
+        summary = "\n".join(phases) if phases else "no PowerShell phase observed"
+        # 不回退为成功、不重试或延长时限；固定诊断替代含整条脚本的异常正文。
+        raise AssertionError(
+            f"PowerShell probe exceeded {timeout:g}s; elapsed_ms={elapsed_ms}\n{summary}"
+        ) from None
+    elapsed_ms = int((time.monotonic() - started) * 1000)
+    for phase in probe_phase_lines(result.stderr):
+        print(phase, file=sys.stderr, flush=True)
+    print(
+        f"android-probe phase=process-completed elapsed_ms={elapsed_ms} exit_code={result.returncode}",
+        file=sys.stderr,
+        flush=True,
     )
+    return result
 
 
 def fixture_toolchain(tmp_path: Path, missing: str = "") -> tuple[Path, Path, Path]:
@@ -106,15 +152,18 @@ def test_direct_arguments_and_child_environment_do_not_change_parent(tmp_path: P
     arguments = ["", "空格 路径", 'quote"value', "semicolon;value", "$(not-run)", "tail\\"]
     native_arguments = ",".join(powershell_literal(value) for value in arguments)
     source = f"""
+        Write-AndroidProbePhase 'location-begin';
         Set-Location -LiteralPath {powershell_literal(str(tmp_path))};
+        Write-AndroidProbePhase 'location-ready';
         $layout = @{{JdkHome='fixture-jdk'; SdkRoot='fixture-sdk'; GradleUserHome='fixture-cache'}};
         $before = @{{PATH=$env:PATH; JAVA_HOME=$env:JAVA_HOME; ANDROID_HOME=$env:ANDROID_HOME;
             ANDROID_SDK_ROOT=$env:ANDROID_SDK_ROOT; GRADLE_USER_HOME=$env:GRADLE_USER_HOME}};
         $payload = 'import json,os,sys;print(json.dumps({{"args":sys.argv[1:],"java":os.environ["JAVA_HOME"],"sdk":os.environ["ANDROID_HOME"],"sdkRoot":os.environ["ANDROID_SDK_ROOT"],"cache":os.environ["GRADLE_USER_HOME"],"cwd":os.getcwd()}},ensure_ascii=False))';
-        [Console]::Error.WriteLine('fixture: launching isolated child');
+        Write-AndroidProbePhase 'fixture-ready';
+        Write-AndroidProbePhase 'child-call-begin';
         $code = Invoke-AndroidProcess {powershell_literal(sys.executable)} `
-            (@('-I', '-S', '-X', 'utf8', '-c', $payload) + @({native_arguments})) $layout 5;
-        [Console]::Error.WriteLine('fixture: child and output completed');
+            (@('-I', '-S', '-X', 'utf8', '-c', $payload) + @({native_arguments})) $layout 5 -TracePhases;
+        Write-AndroidProbePhase 'child-call-ready';
         if ($code -ne 0) {{ throw "fixture child exit code: $code" }};
         foreach($name in $before.Keys) {{
             if([Environment]::GetEnvironmentVariable($name,'Process') -cne $before[$name]) {{
@@ -124,6 +173,9 @@ def test_direct_arguments_and_child_environment_do_not_change_parent(tmp_path: P
     """
     result = run_probe(source)
     assert result.returncode == 0, result.stderr
+    phases = probe_phase_lines(result.stderr)
+    assert any("phase=child-started " in phase for phase in phases)
+    assert any("phase=output-completed " in phase for phase in phases)
     payload = json.loads(result.stdout)
     assert payload == {
         "args": arguments,
@@ -133,6 +185,49 @@ def test_direct_arguments_and_child_environment_do_not_change_parent(tmp_path: P
         "cache": "fixture-cache",
         "cwd": str(tmp_path),
     }
+
+
+def test_probe_timeout_preserves_limit_and_reports_only_safe_phases(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    recorded: dict[str, object] = {}
+    monkeypatch.setattr(shutil, "which", lambda _name: "fixture-pwsh")
+
+    def expire(args: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        recorded.update(kwargs)
+        raise subprocess.TimeoutExpired(
+            args,
+            kwargs["timeout"],
+            output=b"token=never-log-tool-output",
+            stderr=b"android-probe phase=entered elapsed_ms=0\n"
+            b"android-probe phase=dot-source-begin elapsed_ms=12\n"
+            b"JAVA_HOME=never-log-path\n"
+            b"android-probe phase=never-log-secret elapsed_ms=13\n",
+        )
+
+    monkeypatch.setattr(subprocess, "run", expire)
+    with pytest.raises(AssertionError) as failure:
+        run_probe("throw 'never-log-script-body'")
+    assert recorded["timeout"] == 10
+    assert recorded["stdin"] == subprocess.DEVNULL
+    message = str(failure.value)
+    assert "PowerShell probe exceeded 10s" in message
+    assert "phase=dot-source-begin elapsed_ms=12" in message
+    assert "never-log" not in message
+    assert "never-log" not in capsys.readouterr().err
+
+
+def test_probe_phase_filter_ignores_tool_output_and_partial_lines() -> None:
+    assert probe_phase_lines(
+        "android-process phase=child-started elapsed_ms=7\n"
+        "android-process phase=child-started elapsed_ms=7 bearer=secret\n"
+        "\x1b[31mJAVA_HOME=private\n"
+        "android-probe phase=dot-source-ready elapsed_ms=12\n"
+        "android-probe phase=child-call-ready elapsed_ms="
+    ) == [
+        "android-process phase=child-started elapsed_ms=7",
+        "android-probe phase=dot-source-ready elapsed_ms=12",
+    ]
 
 
 @pytest.mark.parametrize(
@@ -207,7 +302,10 @@ def test_cli_failure_preserves_exit_status_under_stop_preference(tmp_path: Path)
     )
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == "1"
-    assert result.stderr, "应显示缺失工具错误，不能静默成功"
+    assert any(
+        line.strip() and PHASE_PATTERN.fullmatch(line) is None
+        for line in result.stderr.splitlines()
+    ), "应显示缺失工具错误，不能用探针阶段日志冒充真实错误"
 
 
 @pytest.mark.skipif(os.name != "nt", reason="Windows 工具布局模拟，不要求真实 SDK 安装")
@@ -256,6 +354,7 @@ def test_tool_exit_code_is_preserved() -> None:
     )
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == "7"
+    assert "android-process phase=" not in result.stderr, "生产调用默认不输出阶段诊断"
 
 
 def test_timeout_is_reported_without_waiting_for_tool_completion() -> None:

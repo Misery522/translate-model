@@ -32,7 +32,7 @@ REQUIRED_SOURCE = {
     "mobile/THIRD_PARTY_ANDROID_NOTICES.md", "mobile/index.html", "mobile/package.json",
     "mobile/android/app/gradle.lockfile", "mobile/android/gradle/verification-metadata.xml",
     "mobile/android/app/src/main/java/io/github/misery522/yijing/MainActivity.java",
-    "data/glossary.example.json", "docs/ROADMAP.md",
+    "data/glossary.example.json", "docs/ROADMAP.md", "docs/PROJECT_STATUS.md",
     "tests/test_publication.py", "tests/test_smoke_model.py",
 }
 
