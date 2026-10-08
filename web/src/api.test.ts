@@ -232,13 +232,21 @@ describe('HTTP 与离线隐私边界', () => {
   });
   it('SW 仅处理白名单 GET 静态资产，不处理 API/跨域/查询或写请求', () => {
     const origin = 'https://private.example';
-    const allowed = ['/index.html', '/assets/app.js', '/pet-icon.svg'];
+    const allowed = [
+      '/index.html',
+      '/assets/app.js',
+      '/pet-icon.svg',
+      '/pet-icon-192.png',
+      '/pet-icon-maskable-512.png',
+    ];
     const request = (path: string, method = 'GET', mode = 'cors') => ({
       url: `${origin}${path}`,
       method,
       mode,
     });
     expect(isStaticRequest(request('/assets/app.js'), origin, allowed)).toBe(true);
+    expect(isStaticRequest(request('/pet-icon-192.png'), origin, allowed)).toBe(true);
+    expect(isStaticRequest(request('/pet-icon-maskable-512.png'), origin, allowed)).toBe(true);
     expect(isStaticRequest(request('/', 'GET', 'navigate'), origin, allowed)).toBe(true);
     expect(
       isStaticRequest(request('/api/v1/auth/session'), origin, [

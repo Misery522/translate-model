@@ -11,6 +11,13 @@ from yijing_api.static import mount_static_shell
 def static_client(tmp_path):
     (tmp_path / "index.html").write_text("<h1>译境</h1>", encoding="utf-8")
     (tmp_path / "sw.js").write_text("// static only", encoding="utf-8")
+    for name in (
+        "apple-touch-icon.png",
+        "pet-icon-192.png",
+        "pet-icon-512.png",
+        "pet-icon-maskable-512.png",
+    ):
+        (tmp_path / name).write_bytes(b"\x89PNG\r\n\x1a\n")
     (tmp_path / "private.txt").write_text("not public", encoding="utf-8")
     (tmp_path / "assets").mkdir()
     (tmp_path / "assets" / "app-123.js").write_text("void 0", encoding="utf-8")
@@ -35,8 +42,20 @@ def test_static_assets_cache_but_worker_revalidates(static_client):
 
 
 @pytest.mark.parametrize("path", [
+    "/apple-touch-icon.png",
+    "/pet-icon-192.png",
+    "/pet-icon-512.png",
+    "/pet-icon-maskable-512.png",
+])
+def test_static_server_exposes_only_declared_root_icons(static_client, path):
+    response = static_client.get(path)
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-cache"
+
+
+@pytest.mark.parametrize("path", [
     "/private.txt", "/assets/app-123.js.map", "/api/v1/missing", "/.env",
-    "/assets/../private.txt", "/missing", "/assets/nested/app.js",
+    "/assets/../private.txt", "/missing", "/assets/nested/app.js", "/private-icon.png",
 ])
 def test_static_server_exposes_only_public_build_files(static_client, path):
     assert static_client.get(path).status_code == 404
