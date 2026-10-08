@@ -7,7 +7,15 @@ from starlette.exceptions import HTTPException
 from starlette.staticfiles import StaticFiles
 
 PUBLIC_FILES = frozenset({
-    "index.html", "manifest.webmanifest", "sw.js", "pet-icon.svg", "THIRD_PARTY_LICENSES.txt",
+    "THIRD_PARTY_LICENSES.txt",
+    "apple-touch-icon.png",
+    "index.html",
+    "manifest.webmanifest",
+    "pet-icon-192.png",
+    "pet-icon-512.png",
+    "pet-icon-maskable-512.png",
+    "pet-icon.svg",
+    "sw.js",
 })
 CSP = (
     "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; "

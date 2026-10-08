@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { TranslationApi } from './api';
+import type { TranslatorTransport } from './translatorTransport';
 import { Pet } from './Pet';
 import type { AgentResult, Options, Turn } from './types';
 import { characterCount, useTranslator } from './useTranslator';
@@ -264,7 +264,13 @@ function ConversationTurn({
   );
 }
 
-export default function App({ api }: { api?: TranslationApi }) {
+export default function App({
+  api,
+  platform = 'web',
+}: {
+  api?: TranslatorTransport;
+  platform?: 'web' | 'android';
+}) {
   const app = useTranslator(api);
   const [pairCode, setPairCode] = useState('');
   const count = characterCount(app.draft);
@@ -286,7 +292,11 @@ export default function App({ api }: { api?: TranslationApi }) {
         跳到翻译区域
       </a>
       <header className="app-header">
-        <a href="/" className="brand" aria-label="译境首页">
+        <a
+          href={platform === 'android' ? '#main-content' : '/'}
+          className="brand"
+          aria-label="译境首页"
+        >
           <Pet />
           <span>
             译境<small>让表达，自在一点。</small>
@@ -391,7 +401,11 @@ export default function App({ api }: { api?: TranslationApi }) {
               >
                 {app.busy ? '正在连接…' : '连接，开始翻译'} <span aria-hidden="true">↗</span>
               </button>
-              <p className="pair-privacy">设备凭据由浏览器保护。翻译记录只留在本页。</p>
+              <p className="pair-privacy">
+                {platform === 'android'
+                  ? '凭据只在原生内存中保存。退到后台会清空内容，并需要重新配对。'
+                  : '设备凭据由浏览器保护。翻译记录只留在本页。'}
+              </p>
             </form>
           </section>
         ) : (
