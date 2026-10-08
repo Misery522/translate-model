@@ -25,10 +25,15 @@
 生产构建还包含它们使用的 scheduler。构建流程从安装包中收集上述运行时的完整
 LICENSE 文本，生成 `web/dist/THIRD_PARTY_LICENSES.txt`；分发构建产物时必须一并保留。
 前端使用系统字体和项目原创 SVG 角色，没有下载第三方宠物图片或网络字体。
-M3 增加固定版本 `@tauri-apps/api` 2.11.1，生产构建同时附带其 MIT 和 Apache-2.0
+M3 稳定升级树固定版本 `@tauri-apps/api` 2.12.1，生产构建同时附带其 MIT 和 Apache-2.0
 完整文本。Tauri、reqwest 等 Rust 传递依赖必须基于审查后的 Cargo.lock 单独收集
 版权声明和完整许可；仅列出 SPDX 标识或 JS 许可证不能满足桌面再分发验收。
 Vite、TypeScript、Vitest 等为构建和测试工具，不等同于已内嵌的运行时列表。
+
+Windows Rust 许可材料采集使用固定 cargo-about 0.9.2、Cargo.lock 和实际目标依赖图。
+生成器保留原包及精确补充来源的完整法律文件、附带版权和来源；输出仅供人工审查。
+OR 候选选择、复合许可与 MPL 源码获取义务仍需核实，不将 SPDX、哈希或采集成功
+当作再分发许可已通过。说明见 [桌面许可证收口](docs/DESKTOP_LICENSES.md)。
 
 ## 外部运行时及模型
 
