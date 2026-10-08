@@ -18,6 +18,31 @@ test('构建版本一致并明确将锁定参数传给 Cargo', () => {
   assert.equal(pkg.scripts.test, 'node scripts/test.mjs');
 });
 
+test('稳定 Tauri 升级保持精确锁定、安全补丁并移除 UNIC 依赖', () => {
+  const cargo = read('../src-tauri/Cargo.toml');
+  const cargoLock = read('../src-tauri/Cargo.lock');
+  const pkg = JSON.parse(read('../package.json'));
+  const desktopLock = JSON.parse(read('../package-lock.json'));
+  const webPkg = JSON.parse(read('../../web/package.json'));
+  const webLock = JSON.parse(read('../../web/package-lock.json'));
+  const crates = [...cargoLock.matchAll(/\[\[package\]\]\r?\nname = "([^"]+)"\r?\nversion = "([^"]+)"/g)];
+  const versionOf = (name) => crates.filter((item) => item[1] === name).map((item) => item[2]);
+
+  assert.match(cargo, /tauri = \{ version = "=2\.12\.1"/);
+  assert.match(cargo, /tauri-build = \{ version = "=2\.7\.1"/);
+  assert.deepEqual(versionOf('tauri'), ['2.12.1']);
+  assert.deepEqual(versionOf('tauri-build'), ['2.7.1']);
+  assert.deepEqual(versionOf('tauri-utils'), ['2.10.1']);
+  assert.deepEqual(versionOf('rustls'), ['0.23.45']);
+  assert.ok(!crates.some((item) => item[1].startsWith('unic-')));
+  assert.ok(!/^\[patch\./m.test(cargo), '不能用私有补丁绕过上游发布');
+  assert.ok(!cargoLock.includes('source = "git+'), '依赖必须来自审查过的正式注册表');
+  assert.equal(pkg.devDependencies['@tauri-apps/cli'], '2.12.1');
+  assert.equal(desktopLock.packages['node_modules/@tauri-apps/cli'].version, '2.12.1');
+  assert.equal(webPkg.dependencies['@tauri-apps/api'], '2.12.1');
+  assert.equal(webLock.packages['node_modules/@tauri-apps/api'].version, '2.12.1');
+});
+
 test('活动源码工作流固定 Actions SHA 且只上传锁文件与限定格式补丁', () => {
   // 活动工作流缺失应失败，不能回退到过期模板假装门禁仍存在。
   const workflow = readWorkflow();

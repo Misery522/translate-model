@@ -7,10 +7,10 @@ license = "Apache-2.0"
 publish = false
 
 [build-dependencies]
-tauri-build = { version = "=2.6.3", features = [] }
+tauri-build = { version = "=2.7.1", features = [] }
 
 [dependencies]
-tauri = { version = "=2.11.6", features = ["tray-icon"] }
+tauri = { version = "=2.12.1", features = ["tray-icon"] }
 tauri-plugin-global-shortcut = "=2.3.2"
 reqwest = { version = "=0.13.4", default-features = false, features = ["json", "rustls"] }
 serde = { version = "=1.0.229", features = ["derive"] }
