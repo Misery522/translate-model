@@ -120,9 +120,72 @@ jobs:
       - name: Audit frontend dependencies
         run: npm --prefix web audit --audit-level=moderate
 
+  android:
+    name: Android source and private debug build
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24.18.1"
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "0.12.5"
+          enable-cache: false
+      - name: Restore locked tools for tests
+        run: |
+          uv sync --locked --group dev --python 3.14
+          npm --prefix web ci --ignore-scripts
+      - name: Native frontend tests (60 seconds) and build
+        run: |
+          npm --prefix mobile test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm --prefix mobile run build
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Download fixed official JDK, Gradle and SDK CLI to ephemeral runner
+        shell: pwsh
+        run: |
+          $toolRoot = Join-Path $env:RUNNER_TEMP 'yijing-android-tools'
+          New-Item -ItemType Directory -Path $toolRoot -Force | Out-Null
+          $archives = @(
+            @('https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jdk_x64_windows_hotspot_21.0.12.1_1.zip', 'jdk.zip', 'f9d6e191ab098c0d416e7d588a24420a8621cd2f4720dab2459b8b7b2d2d8b4e'),
+            @('https://services.gradle.org/distributions/gradle-8.14.3-bin.zip', 'gradle.zip', 'bd71102213493060956ec229d946beee57158dbd89d0e62b91bca0fa2c5f3531'),
+            @('https://dl.google.com/android/repository/commandlinetools-win-15859902_latest.zip', 'sdk-cli.zip', '90ae805d20434428bffcb699c290860f19bb5f66a67e6b330067e3de801fb04a')
+          )
+          foreach ($archive in $archives) {
+            $destination = Join-Path $toolRoot $archive[1]
+            Invoke-WebRequest -Uri $archive[0] -OutFile $destination -TimeoutSec 180
+            if ((Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash.ToLowerInvariant() -ne $archive[2]) { throw 'Official archive checksum mismatch' }
+            Expand-Archive -LiteralPath $destination -DestinationPath $toolRoot
+          }
+          $sdkRoot = Join-Path $toolRoot 'android-sdk'
+          New-Item -ItemType Directory -Path (Join-Path $sdkRoot 'cmdline-tools') -Force | Out-Null
+          Move-Item -LiteralPath (Join-Path $toolRoot 'cmdline-tools') -Destination (Join-Path $sdkRoot 'cmdline-tools/22.0')
+          # 复用 hosted runner 已接受的 SDK 许可证；不改 runner 原 SDK 和全局环境。
+          Copy-Item -LiteralPath (Join-Path $env:ANDROID_HOME 'licenses') -Destination $sdkRoot -Recurse
+          ./scripts/android-env.ps1 -Mode sdk -JdkHome (Join-Path $toolRoot 'jdk-21.0.12.1+1') -SdkRoot $sdkRoot -TimeoutSeconds 600 -ToolArguments @('platforms;android-36', 'build-tools;36.0.0')
+          if ($LASTEXITCODE -ne 0) { throw 'Runner SDK setup failed' }
+      - name: Java core and host tests (combined hard limit 60 seconds)
+        shell: pwsh
+        run: |
+          $jdk = Join-Path $env:RUNNER_TEMP 'yijing-android-tools/jdk-21.0.12.1+1'
+          uv run --no-sync python scripts/run-android-unit-tests.py --jdk-home $jdk
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Strictly verified debug compile and lint (no artifact upload)
+        shell: pwsh
+        run: |
+          $toolRoot = Join-Path $env:RUNNER_TEMP 'yijing-android-tools'
+          ./scripts/android-env.ps1 -Mode gradle -JdkHome (Join-Path $toolRoot 'jdk-21.0.12.1+1') -GradleHome (Join-Path $toolRoot 'gradle-8.14.3') -SdkRoot (Join-Path $toolRoot 'android-sdk') -GradleUserHome (Join-Path $toolRoot 'gradle-cache') -TimeoutSeconds 1200 -ToolArguments @('-p', 'mobile/android', ':app:assembleDebug', ':app:lintDebug')
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          uv run --no-sync python scripts/verify-android-apk.py --apk mobile/android/app/build/outputs/apk/debug/app-debug.apk --aapt2 (Join-Path $toolRoot 'android-sdk/build-tools/36.0.0/aapt2.exe')
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
   required:
     name: Required checks
-    needs: [test, dependencies, package, web]
+    needs: [test, dependencies, package, web, android]
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 2
@@ -133,4 +196,5 @@ jobs:
           AUDIT_RESULT: ${{ needs.dependencies.result }}
           PACKAGE_RESULT: ${{ needs.package.result }}
           WEB_RESULT: ${{ needs.web.result }}
-        run: test "$TEST_RESULT" = success && test "$AUDIT_RESULT" = success && test "$PACKAGE_RESULT" = success && test "$WEB_RESULT" = success
+          ANDROID_RESULT: ${{ needs.android.result }}
+        run: test "$TEST_RESULT" = success && test "$AUDIT_RESULT" = success && test "$PACKAGE_RESULT" = success && test "$WEB_RESULT" = success && test "$ANDROID_RESULT" = success

@@ -27,6 +27,11 @@ REQUIRED_SOURCE = {
     "scripts/audit_publication.py", "scripts/verify_distributions.py",
     "scripts/export_openapi.py",
     "scripts/android-env.ps1", "docs/ANDROID_ENVIRONMENT.md",
+    "scripts/run-android-unit-tests.py", "mobile/README.md",
+    "scripts/verify-android-apk.py", "docs/ANDROID_NATIVE.md",
+    "mobile/THIRD_PARTY_ANDROID_NOTICES.md", "mobile/index.html", "mobile/package.json",
+    "mobile/android/app/gradle.lockfile", "mobile/android/gradle/verification-metadata.xml",
+    "mobile/android/app/src/main/java/io/github/misery522/yijing/MainActivity.java",
     "data/glossary.example.json", "docs/ROADMAP.md",
     "tests/test_publication.py", "tests/test_smoke_model.py",
 }
@@ -56,6 +61,11 @@ def validate_source_members(names: list[str]) -> str:
         raise ValueError("Source archive must contain exactly one root directory")
     root = roots.pop()
     relative = {name.removeprefix(root + "/") for name in names}
+    if any(PurePosixPath(name).name == "local.properties" for name in relative):
+        raise ValueError("Source archive must not include private Android local.properties")
+    generated_parts = {"node_modules", ".idea", ".gradle", "build", "dist"}
+    if any(generated_parts.intersection(PurePosixPath(name).parts) for name in relative):
+        raise ValueError("Source archive must not include generated caches or builds")
     missing = REQUIRED_SOURCE - relative
     if missing:
         raise ValueError(f"Source archive missing required files: {', '.join(sorted(missing))}")

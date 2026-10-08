@@ -7,6 +7,9 @@
 仓库地址：[Misery522/translate-model](https://github.com/Misery522/translate-model)。
 项目处于早期版本。除原有 Gradio 界面外，现提供私人 API 与会话式网页；
 原生桌面宠物、手机客户端和语音仍按[开发路线](docs/ROADMAP.md)分阶段验证。
+本开发分支新增受限原生 Android 私人试用客户端，可构建独立图标的 debug APK，
+无需外部浏览器。源码和本机构建已验证，手机安装与真机验收尚未完成；
+操作和下一阶段安排见 [Android 试用说明](docs/ANDROID_NATIVE.md)。
 核心已独立为 `yijing` 包，Gradio 经统一服务调用既有翻译工作流，见
 [核心服务架构](docs/ARCHITECTURE.md)。
 

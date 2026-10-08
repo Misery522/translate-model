@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">译境 · 小译</string>
+    <string name="about_licenses">关于、隐私与第三方许可</string>
+    <string name="safe_start_failure">译境 · 安全启动提示\n\n%1$s\n\nAndroid %2$s。没有开启旧式桥或网络降级。</string>
+    <string name="native_privacy">私人 Android 文字翻译试用版。模型在电脑运行，需保持私人 Tailscale 与电脑在线。后台、退出、切换地址会清空身份和内容。只申请网络权限，不读剪贴板，不录音。主动复制后内容交给系统剪贴板；输入法、系统和受控电脑不属于 App 内存清理保证。禁止截图与设备备份。不支持语音、离线模型或系统悬浮宠物。</string>
+    <string name="license_unavailable">许可文件缺失，请使用完整构建的版本。</string>
+</resources>

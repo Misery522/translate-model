@@ -30,6 +30,25 @@ def test_complete_source_archive_has_one_safe_root():
     assert validate_source_members(["release/" + name for name in REQUIRED_SOURCE]) == "release"
 
 
+def test_source_archive_rejects_ignored_android_local_configuration():
+    names = ["release/" + name for name in REQUIRED_SOURCE]
+    names.append("release/mobile/android/local.properties")
+    with pytest.raises(ValueError, match="local.properties"):
+        validate_source_members(names)
+
+
+@pytest.mark.parametrize("private", [
+    "mobile/node_modules/.vite/results.json", "mobile/android/.idea/workspace.xml",
+    "mobile/android/.gradle/cache.json", "mobile/android/app/build/report.json",
+    "mobile/dist/index.html",
+])
+def test_source_archive_rejects_generated_caches(private):
+    names = ["release/" + name for name in REQUIRED_SOURCE]
+    names.append("release/" + private)
+    with pytest.raises(ValueError, match="generated caches"):
+        validate_source_members(names)
+
+
 def test_wheel_requires_runtime_paths_and_license():
     names = list(RUNTIME_PATHS)
     names.append("release.dist-info/licenses/THIRD_PARTY_NOTICES.md")
