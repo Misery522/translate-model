@@ -38,13 +38,19 @@
 官方模板使用 compile/target SDK 36、AGP 8.13.0、Gradle 8.14.3 和 Java 21。
 minimum SDK 是可安装下限，compile/target SDK 是构建及系统行为目标，三者不能混淆。
 
-已安装 Android Studio、Node 24.18.1、SDK Platform 37.0、Build Tools 36.0.0。
-尚缺 JDK 21、SDK Platform 36 和 SDK command-line tools。
-Android Studio 的 JBR 25 不直接用于 Gradle 8.14.3。
+经用户单独确认，已安装并实际验证 Temurin JDK 21.0.12.1+1、SDK Platform 36
+修订 2、Command-Line Tools 22.0 和 Gradle 8.14.3。已有 Build Tools 36.0.0
+继续使用；API 37 与 Android Studio JBR 25 保留且关键文件哈希未变。
+官方归档校验和一致，`doctor` 的四个真实 CLI 均通过。
+独立 Android library 探针使用 AGP 8.13.0 成功编译（13 秒），输出 Java 21
+major version 65 的 `.class`，实际引用 Android API；没有生成 APK/AAB。
 
-补装必须取得单独系统变更确认：保留 API 37，保留 Android Studio 自身 Java，
-只为此项目选择 JDK 21；不修改全局 PATH/JAVA_HOME，不安装 NDK/CMake，
-不重建 Python 环境或变动模型。原 Native C++ 模板不覆盖、不删除。
+Windows AGP 实测拒绝中文工程根路径。环境探针改用独立英文路径，后续正式原生
+工程使用英文路径 Git worktree；不移动原仓库，也不设置 `android.overridePathCheck`。
+启动器见 [Android 环境说明](ANDROID_ENVIRONMENT.md)，只为子进程选择 JDK 21，
+不修改全局 PATH/JAVA_HOME。安装前后 18 项环境值哈希、原模板 40 文件组合哈希
+与受保护工具关键文件均一致；现有桌面、手机 API 和 Ollama 服务未停止。
+不安装 NDK/CMake，不重建 Python 环境或变动模型；后续新增系统安装仍须单独确认。
 
 ## 实施顺序
 
@@ -52,7 +58,8 @@ Android Studio 的 JBR 25 不直接用于 Gradle 8.14.3。
    移植已测试的安全请求编号回退，避免依赖未合并桌面宿主。
 2. 实现 Android 原生操作协议与模拟测试：白名单路由、任务绑定、固定错误映射、
    连接代次和取消语义。模拟测试不作为真实原生宿主或手机测试。
-3. 系统补装获确认后，固定 Capacitor 依赖、生成独立 Android 工程和本地界面入口。
+3. 构建工具补装与真实编译验证已完成；下一步在英文 Git worktree 固定 Capacitor
+   依赖、生成独立 Android 工程和本地界面入口。
    不设置远程 `server.url`，不把 Tauri/Rust 窗口插件复制到手机。
 4. 实现 Java 内存认证、HTTPS 网络桥、导航/CSP、生命周期和隐私配置。
 5. 执行依赖及许可审查、前端测试、Java 单测、Android lint 与私人 debug 构建。

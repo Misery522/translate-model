@@ -78,9 +78,15 @@ Shell、文件读写或网络下载操作。Java 必须重复校验所有参数�
 
 ## 开发和验收顺序
 
-先完成本轮共享协议，再锁定 Capacitor 稳定依赖及许可证，加入 Java 宿主和
-本地 Android 页面，执行静态检查、Java 单测和 CI 构建。经用户确认补齐 JDK 21
-和 SDK Platform 36；已有 Build Tools 36.0.0 不重复安装。无需 NDK/CMake。
+共享协议基础与本机构建环境已完成；不代表 App 已交付。经用户确认补齐
+JDK 21.0.12.1+1、SDK Platform 36（修订 2）、命令行工具 22.0、Gradle 8.14.3，
+已有 Build Tools 36.0.0 未重装。真实 AGP 8.13.0 Android Java 编译探针通过，
+输出 Java 21 `.class`，没有 APK。全局环境变量、API 37、Studio JBR 和原模板保持不变。
+详见 [项目环境启动器](../docs/ANDROID_ENVIRONMENT.md)。
+
+Windows AGP 不接受中文工程根路径；正式原生工程将使用英文路径 Git worktree，
+不移动现有仓库或绕过路径检查。接下来锁定 Capacitor 稳定依赖及许可证，加入
+Java 宿主和本地 Android 页面，执行静态检查、Java 单测和 CI 构建；无需 NDK/CMake。
 
 之后才生成私人 debug APK、安装到 Redmi K70，检查系统/WebView 版本、配对、
 实际译文、取消/清空竞态、返回键、前后台、切网、电脑离线、重启和权限边界。
