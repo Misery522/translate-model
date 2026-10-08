@@ -111,18 +111,16 @@ def test_direct_arguments_and_child_environment_do_not_change_parent(tmp_path: P
         $before = @{{PATH=$env:PATH; JAVA_HOME=$env:JAVA_HOME; ANDROID_HOME=$env:ANDROID_HOME;
             ANDROID_SDK_ROOT=$env:ANDROID_SDK_ROOT; GRADLE_USER_HOME=$env:GRADLE_USER_HOME}};
         $payload = 'import json,os,sys;print(json.dumps({{"args":sys.argv[1:],"java":os.environ["JAVA_HOME"],"sdk":os.environ["ANDROID_HOME"],"sdkRoot":os.environ["ANDROID_SDK_ROOT"],"cache":os.environ["GRADLE_USER_HOME"],"cwd":os.getcwd()}},ensure_ascii=False))';
-        $info = New-AndroidProcessStartInfo {powershell_literal(sys.executable)} `
-            (@('-c', $payload) + @({native_arguments})) $layout;
-        $process = [Diagnostics.Process]::new(); $process.StartInfo=$info;
-        $null=$process.Start(); $stdout=$process.StandardOutput.ReadToEnd();
-        $stderr=$process.StandardError.ReadToEnd(); $process.WaitForExit();
-        if ($process.ExitCode -ne 0) {{ throw $stderr }}; $process.Dispose();
+        [Console]::Error.WriteLine('fixture: launching isolated child');
+        $code = Invoke-AndroidProcess {powershell_literal(sys.executable)} `
+            (@('-I', '-S', '-X', 'utf8', '-c', $payload) + @({native_arguments})) $layout 5;
+        [Console]::Error.WriteLine('fixture: child and output completed');
+        if ($code -ne 0) {{ throw "fixture child exit code: $code" }};
         foreach($name in $before.Keys) {{
             if([Environment]::GetEnvironmentVariable($name,'Process') -cne $before[$name]) {{
                 throw "父进程变量发生改变：$name"
             }}
         }};
-        Write-Output $stdout;
     """
     result = run_probe(source)
     assert result.returncode == 0, result.stderr
