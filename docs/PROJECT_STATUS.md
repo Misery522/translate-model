@@ -71,33 +71,27 @@
 
 ### 6. Linux CI 源码包探针超时
 
-- **状态：有界现场诊断已完成；根因未证实，待最新 Linux CI。**
-- **本次结果：**已确认相同 Android 提交的
-  [push CI](https://github.com/Misery522/translate-model/actions/runs/37815613290)
-  在 Linux 源码包测试中因 PowerShell 探针超过 10 秒失败，不是 APK 编译失败。
-  已加入固定阶段与耗时诊断，测试明确关闭标准输入；生产诊断默认关闭，不打印
-  参数、路径、环境或工具正文。外层 10 秒、工具 5 秒和整套 60 秒时限保持不变。
-  提交 `50bb16f` 的 [PR CI](https://github.com/Misery522/translate-model/actions/runs/37820578096)
-  通过，但 [push CI](https://github.com/Misery522/translate-model/actions/runs/37820570209)
-  在 Linux Python 3.14 两个探针中再次超时，没有将重跑作为修复。
-  第二轮仅为测试子进程关闭 PowerShell 启动遥测，并增加正文完成/结果写入边界。
-  [官方说明](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_telemetry?view=powershell-7.6)
-  要求该设置在启动前生效；[固定版本源码](https://github.com/PowerShell/PowerShell/blob/v7.6.6/src/System.Management.Automation/utils/Telemetry.cs)
-  确认它可跳过遥测初始化。这是隔离候选因素，不是认定故障根因；不改父环境或生产配置。
-  `1250cf6` 的 [PR CI](https://github.com/Misery522/translate-model/actions/runs/37822154425)
-  通过，但 [push CI](https://github.com/Misery522/translate-model/actions/runs/37822148597)
-  的 Linux 源码包探针仍在首条阶段标记之前超时，说明仅关闭遥测不足以解决问题。
+- **状态：诊断加固与本提交门禁验证已完成；间歇超时根因未证实。**
+- **本次结果：**已加入固定阶段、正文结束与进程退出边界，并且只为测试子进程
+  关闭启动遥测。第三轮增加有界、脱敏的进程现场采样与回收；保留原有真实用例和
+  失败语义，不改生产执行方式，不跳过、重试或延长执行时限。
+  验证基线 `da1ddb9` 的
+  [push CI](https://github.com/Misery522/translate-model/actions/runs/37825252347) 和
+  [PR CI](https://github.com/Misery522/translate-model/actions/runs/37825260310)
+  **各 14 项通过**。这说明本提交门禁通过，不等于历史故障的根因已经解决。
 - **验证依据：**2026-10-09 第三轮本机完整 Python 510 项通过（29.86 秒），隔离
-  源码包同样 510 项通过（28.10 秒）；最新两类 CI 待核对。20 项真实模型
+  源码包同样 510 项通过（28.10 秒）；对应远程结果见上述两个运行。20 项真实模型
   测试未运行。网页 163 项、Android 界面 20 项、Java 127 项、Ruff、依赖一致性、
   OpenAPI、前端格式/类型和 APK 静态检查通过。PR 事件通过不能抵消另一轮失败。
-- **剩余问题：**新日志确认一个探针未到 PowerShell 最早语句，另一探针在约 151
-  毫秒内点源完成后卡住；尚不能区分其后执行与进程退出，根因未证实。不能把
-  诊断加固写成已修复生产死锁，也不能凭重跑成功宣称已确认根因。
-- **下一步：**提交并检查同一 SHA 的 push 和 PR CI。超时时新增的诊断只读取
-  本次子进程的状态、CPU 数值及最多 32 个线程的固定等待分类；每文件最多 2 KiB，
-  诊断预算 200 毫秒、回收预算 500 毫秒。不读取命令、环境、内存或私有路径，
-  超时仍失败；取得现场后再决定修复，不跳过测试或延长执行时限。
+- **剩余问题：**[上一轮失败](https://github.com/Misery522/translate-model/actions/runs/37822148597)
+  表明关闭遥测不足；历史日志分别出现首次语句前和点源后超时，尚不能确认具体的
+  引擎初始化、解析、等待或退出原因。本轮没有产生新的 Linux 超时现场。
+  原 APK 的业务源码不变；没有把诊断加固写成已修复翻译服务死锁。
+- **下一步：**核对最终文档提交的两类 CI，最新结果保留在
+  [PR #27](https://github.com/Misery522/translate-model/pull/27)。正常推进源码审查，
+  不自动重跑或创建监控；如果再次超时，按现场重新打开问题，不以重跑关闭。
+  采样仅限本次子进程、32 线程/每文件 2 KiB/200 毫秒，回收预算 500 毫秒；
+  不读取命令、环境、内存或私有路径，预算耗尽不代表资源已回收。
 
 ### 7. 手机验收准备与授权
 
