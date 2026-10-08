@@ -3,6 +3,10 @@
 日期：2026-10-08。源码版本：0.3.0a1；复验基线：`8e100cb`，
 `fix/private-pwa-xiaomi`。本轮未创建新标签或 GitHub Release。
 
+这是 **2026-10-08 的复验记录**；本页保留当时结果，不作为最新整合或真机状态。
+当前版本资料、原生 App 与 CI 进度见[项目动态进度](PROJECT_STATUS.md)。
+源码标签、内部试用和 GitHub Release 分别记录。
+
 ## 本轮代码侧复验
 
 - 项目 `.venv` 实测 Python 3.14.7；Node.js 24.18.1、npm 11.16.0、uv 0.12.5。

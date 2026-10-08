@@ -1,0 +1,63 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'io.github.misery522.yijing'
+    compileSdk 36
+    buildToolsVersion '36.0.0'
+    defaultConfig {
+        applicationId 'io.github.misery522.yijing.alpha'
+        minSdk 26
+        targetSdk 36
+        versionCode 1
+        versionName '0.4.0-native-alpha.1'
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+    sourceSets.main.assets.srcDir(layout.buildDirectory.dir('generated/nativeAssets'))
+    buildTypes {
+        debug { debuggable true }
+        // 尚不配置发布签名；私人试用不是正式发布。
+        release { minifyEnabled false }
+    }
+    lint { abortOnError true; warningsAsErrors true }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.14.0'
+}
+
+dependencyLocking { lockAllConfigurations() }
+
+tasks.register('prepareNativeAssets', Sync) {
+    from(rootProject.file('../dist')) { exclude 'THIRD_PARTY_LICENSES.txt' }
+    from(rootProject.file('../../LICENSE')) { into 'notices'; rename { 'LICENSE.txt' } }
+    from(rootProject.file('../dist/THIRD_PARTY_LICENSES.txt')) { into 'notices' }
+    from(rootProject.file('../THIRD_PARTY_ANDROID_NOTICES.md')) { into 'notices'; rename { 'THIRD_PARTY_ANDROID_NOTICES.txt' } }
+    into(layout.buildDirectory.dir('generated/nativeAssets/public'))
+    doFirst {
+        if (!rootProject.file('../dist/index.html').isFile())
+            throw new GradleException('请先执行 npm --prefix mobile run build；禁止打包空白 App。')
+    }
+}
+tasks.named('preBuild').configure { dependsOn 'prepareNativeAssets' }
+
+tasks.register('runtimeInventory') {
+    doLast {
+        def artifacts = configurations.debugRuntimeClasspath.resolvedConfiguration.resolvedArtifacts.collect {
+            [group: it.moduleVersion.id.group, name: it.moduleVersion.id.name, version: it.moduleVersion.id.version]
+        }.unique().sort { a, b -> (a.group + ':' + a.name) <=> (b.group + ':' + b.name) }
+        def output = layout.buildDirectory.file('reports/native/runtime-inventory.json').get().asFile
+        output.parentFile.mkdirs()
+        output.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(artifacts)) + '\n'
+    }
+}
+
+// 单测编译与运行分开，运行入口另由有 60 秒硬限的脚本调用。
+tasks.register('nativeCoreTests', JavaExec) {
+    dependsOn 'compileDebugUnitTestJavaWithJavac'
+    classpath = files(layout.buildDirectory.dir('intermediates/javac/debugUnitTest/compileDebugUnitTestJavaWithJavac/classes'),
+        layout.buildDirectory.dir('intermediates/javac/debug/compileDebugJavaWithJavac/classes'))
+    mainClass = 'io.github.misery522.yijing.core.NativeTranslatorCoreTest'
+}
