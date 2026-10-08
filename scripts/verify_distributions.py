@@ -26,6 +26,7 @@ REQUIRED_SOURCE = {
     ".env.example", ".python-version", "MANIFEST.in",
     "scripts/audit_publication.py", "scripts/verify_distributions.py",
     "scripts/export_openapi.py",
+    "scripts/android-env.ps1", "docs/ANDROID_ENVIRONMENT.md",
     "data/glossary.example.json", "docs/ROADMAP.md",
     "tests/test_publication.py", "tests/test_smoke_model.py",
 }

@@ -35,7 +35,7 @@ describe('安全客户端请求编号', () => {
     expect(unsafeRandom).not.toHaveBeenCalled();
   });
 
-  it('缺少安全随机源时明确拒绝', () => {
+  it('缺少安全随机源时拒绝，不降级到时间戳或计数器', () => {
     expect(() => createRequestId(null)).toThrow('安全随机数');
     expect(() => createRequestId({})).toThrow('安全随机数');
   });

@@ -4,6 +4,9 @@ React + TypeScript + Vite 前端，通过同源 `/api/v1` 使用电脑上的译�
 小译是原创 SVG 交互角色：会显示等待、思考和离线状态。网页本身不包含模型，
 也不提供麦克风监听、语音识别或自主执行命令。
 
+可安装 Android App 已开始共享协议基础开发，尚无 APK 或原生宿主；见
+[Android 客户端基础与安全边界](../mobile/README.md)。网页仍使用原 Cookie 认证。
+
 ## 构建并运行
 
 使用 Node.js 24.15–24.x、npm，以及根目录说明要求的 Python / uv 环境。

@@ -74,6 +74,17 @@ describe('任务响应绑定', () => {
 });
 
 describe('HTTP 与离线隐私边界', () => {
+  it('共享接口的 null CSRF 不会使网页跳过 Cookie 写保护', async () => {
+    const fetcher = vi.fn();
+    vi.stubGlobal('fetch', fetcher);
+    const api = new TranslationApi();
+    await expect(api.createSession(null)).rejects.toMatchObject({
+      status: 403,
+      problem: { code: 'AUTH_MODE_MISMATCH', retryable: false },
+    });
+    api.leaveSession('session-1', null);
+    expect(fetcher).not.toHaveBeenCalled();
+  });
   it('仅使用同源 Cookie，写操作带内存 CSRF，禁止缓存和重定向', async () => {
     const fetcher = vi
       .fn()
