@@ -43,6 +43,10 @@
 
 ## 当前阻塞与待人工验收
 
+- 2026-10-09 隔离许可证收口树复验：cargo-audit 0.22.2 和新 RustSec 数据库
+  `550efd3d587a29b2e2c2b21b17a440da4fede999` 加载 1295 项公告，扫描 467 项
+  锁依赖，严格退出码仍为 1，仅剩下文两项告警；不是沿用 10-08 的旧数据库。
+  Cargo.lock SHA256 不变。离线全平台反向图与 Windows 实际图均已复核。
 - 2026-10-08 使用 cargo-audit `0.22.2` 和新 RustSec 数据库提交
   `b8a1a33e246a0a9a3b5f377248c41a503defec74`，扫描 467 个锁定依赖，
   结果是 **0 个漏洞分类条目、2 个 denied warnings，退出码 1**。
@@ -58,6 +62,10 @@
 - Windows 安装/卸载、第三方 Rust 许可与版权文本、代码签名和正式分发渠道均未完成。
   已枚举并逐项比对 Windows 实际 267 个第三方 crate；覆盖数量完整不代表许可审查完成，
   真实版权、组合许可与 MPL 源码提供义务仍需收口。
+- 已在独立树复用 cargo-about 0.9.2 生成 267 项、476 份可追溯原包与官方补材，
+  包括额外法律文件、siphasher 完整候选条款与 MPL 源码获取事项。
+  全部仍待人工审查，不映射安装资源、不生成通过标记。
+  详见 [桌面许可证收口](DESKTOP_LICENSES.md)。
 - 当前 Visual Studio Community 2026 Insiders 足以进行 Alpha 开发；正式打包前应使用
   受支持的稳定版 Visual Studio/Build Tools 重新验证完整流程。
 

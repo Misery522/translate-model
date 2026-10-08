@@ -20,6 +20,9 @@ def test_archive_rejects_paths_outside_destination(name):
 @pytest.mark.parametrize("missing", [
     "scripts/audit_publication.py", "data/glossary.example.json", "uv.lock", "LICENSE",
     "desktop/src-tauri/Cargo.lock", "web/src/nativeApi.ts",
+    "scripts/generate_desktop_notices.py", "desktop/licenses/about.toml",
+    "desktop/licenses/material-policy.json", "desktop/licenses/Apache-2.0.txt",
+    "desktop/licenses/MPL-2.0.txt",
 ])
 def test_source_archive_requires_offline_test_and_license_inputs(missing):
     names = ["release/" + name for name in REQUIRED_SOURCE - {missing}]

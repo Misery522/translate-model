@@ -1,0 +1,4 @@
+# 仅采集 Windows 实际构建图的待审查材料，不是再分发审批。
+accepted = ["MIT", "Apache-2.0", "BSD-3-Clause", "ISC", "MPL-2.0", "Unicode-3.0", "Zlib"]
+targets = ["x86_64-pc-windows-msvc"]
+private = { ignore = true }

@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "target": "x86_64-pc-windows-msvc",
+  "cargo_lock_sha256": "34da087047c32c50ebdaf603e99a2715787aab169d3f40a13d4f196413010a84",
+  "fallback_manifest_sha256": "dc10f07b87c166795e3463c5f960344b4bc7ff913c666453f53957bb51c4e938",
+  "canonical_licenses": {
+    "Apache-2.0": {
+      "file": "Apache-2.0.txt",
+      "sha256": "50e6751797c50dedd75ef1b8a0d9e42f5f8472e9fbce91f34718e9f97b0c780a",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0.txt"
+    },
+    "MPL-2.0": {
+      "file": "MPL-2.0.txt",
+      "sha256": "3f3d9e0024b1921b067d6f7f88deb4a60cbe7a78e76c64e3f1d7fc3b779b9d04",
+      "url": "https://www.mozilla.org/media/MPL/2.0/index.f75d2927d3c1.txt"
+    }
+  },
+  "proposed_license_choices": {
+    "siphasher@1.0.3": "Apache-2.0",
+    "dunce@1.0.5": "CC0-1.0",
+    "brotli-decompressor@6.0.1": "BSD-3-Clause",
+    "cargo_toml@1.0.1": "Apache-2.0"
+  },
+  "compliance_review_passed": false
+}
