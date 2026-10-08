@@ -90,8 +90,10 @@ npm --prefix web test
 
 公开构建目录仅包含：`index.html`、`manifest.webmanifest`、`pet-icon.svg`、
 `sw.js`、`THIRD_PARTY_LICENSES.txt` 和 `assets/` 下的构建资产。
-构建时从已锁定安装的 React、React DOM、Scheduler 包读取完整版权和许可，
+构建时从已锁定安装的 React、React DOM、Scheduler 和 Tauri API 包读取完整版权和许可，
 合并生成 `THIRD_PARTY_LICENSES.txt`，发布前端时必须一并提供。
+Tauri API `2.12.1` 使用包内 `LICENSE-MIT` 与 `LICENSE-APACHE-2.0`；
+许可缺失或为空时构建必须失败，不生成残缺清单。许可产物不输出本机目录。
 构建插件按实际文件名生成精确缓存白名单，许可文件不需要离线缓存。
 Service Worker 不拦截或缓存 `/api`、查询参数请求或非同源资源。
 

@@ -86,10 +86,13 @@ Rust 1.98.0 MSVC 工具链、Visual Studio Community 2026 Insiders 的
 当前 Insiders 环境可以用于源码开发与 Alpha 试用；正式打包前仍应使用受支持的稳定版
 Visual Studio/Build Tools 重新完成安装、卸载和运行验收。
 
-已审查并导入 CI 生成的 Cargo.lock 及官方 Rust 格式化结果。
-锁文件包含 480 个条目，除本项目外均为带校验和的 crates.io 来源，直接版本与 Cargo.toml 一致。
-本机已实际完成 `cargo fmt --check`、锁定编译和 32 项 Rust 测试；网页 162 项测试、
-桌面静态 34 项测试及 TypeScript 检查也已通过。源码编译通过仍不等于安全审计、
+2026-10-08 稳定依赖修订使用 Tauri `2.12.1`、tauri-build `2.7.1`，
+CLI 与前端 API 同为 `2.12.1`；通过定向 `cargo update -p tauri --precise 2.12.1`
+生成并审查锁文件，没有全量更新其他直接依赖。锁文件由 480 个条目缩减到 467 个，
+除本项目外均为带校验和的 crates.io 来源，`rustls 0.23.45` 安全补丁保持不变。
+本轮已完成 `cargo fmt --check`、锁定编译、34 项 Rust 测试、网页 170 项测试、
+桌面静态 53 项测试，TypeScript 检查与前端构建通过。Rust 测试先独立预编译，
+再由 60 秒运行器执行，实际测试耗时 4.09 秒。源码编译通过仍不等于安全审计、
 许可证、签名或 Windows 安装包验收通过。
 
 不依赖 Rust 的检查，在仓库根目录运行：
@@ -170,6 +173,19 @@ GHSA-w28w-mhc8-qvjv 的上游修复。本地格式、编译、32 项 Rust 测试
 均已通过；GitHub 使用全新 RustSec 数据库扫描 480 个依赖，结果为 **0 个已知漏洞、
 7 个 denied warnings**。`proc-macro-error`、5 个 UNIC 组件和
 `glib 0.18.5` 的 7 项警告仍会阻止发布。
+
+2026-10-08 对修订后的 467 个锁定依赖重新执行完整严格审计，使用
+`cargo-audit 0.22.2` 与最新 RustSec 数据库（提交 `b8a1a33e246a0a9a3b5f377248c41a503defec74`，
+1294 项公告）。结果为 **0 个已知漏洞、2 个 denied warnings，退出码 1**：
+`proc-macro-error 1.0.4`（RUSTSEC-2024-0370，停止维护）与
+`glib 0.18.5`（RUSTSEC-2024-0429，unsound）。5 个 UNIC 依赖已移除。
+Windows 实际依赖树不包含这两个 GTK 链组件，但跨平台 Cargo.lock 仍包含，
+完整严格门禁因此仍然失败；不能使用目标平台过滤或忽略项将它视为发布通过。
+前端仅定向升级 `brace-expansion 2.1.7`、`source-map-js 1.2.2`，
+桌面配置链仅升级 `fast-uri 3.1.8`；两边 `npm audit --audit-level=moderate`
+重新扫描均为 0 漏洞。前端构建同步采用 Tauri 新版完整许可文件名，
+缺失或空许可证必须失败，产物不包含本机路径。
+
 漏洞、严格警告、审计数据库更新失败都不能忽略。
 工作流不允许隐式项目/用户 `audit.toml`
 降低门禁，不使用忽略漏洞、允许过期数据库或自动修改依赖的参数。
@@ -215,11 +231,18 @@ SHA256 清单及发布审查。校验和不能替代代码签名或可信来源�
 
 ## 版本与官方依据
 
-- Tauri `2.11.6`、tauri-build `2.6.3`：
+- Tauri `2.12.1`、tauri-build `2.7.1`：
   [Tauri crate](https://docs.rs/tauri/latest/tauri/)、
+  [Tauri 2.12.1 正式发布](https://github.com/tauri-apps/tauri/releases/tag/tauri-v2.12.1)、
   [Tauri 2.11.6 安全修复](https://github.com/tauri-apps/tauri/releases/tag/tauri-v2.11.6)、
   [命令 ACL 生成](https://docs.rs/tauri-build/latest/tauri_build/struct.AppManifest.html)。
-- CLI `2.11.4`：[@tauri-apps/cli](https://www.npmjs.com/package/@tauri-apps/cli)。
+- CLI 与 API `2.12.1`：
+  [官方 CLI 清单](https://github.com/tauri-apps/tauri/blob/tauri-v2.12.1/packages/cli/package.json)、
+  [官方 API 清单](https://github.com/tauri-apps/tauri/blob/tauri-v2.12.1/packages/api/package.json)。
+- 定向 npm 安全修复：
+  [brace-expansion](https://github.com/advisories/GHSA-qhr7-859c-m2p7)、
+  [source-map-js](https://github.com/advisories/GHSA-68fv-2mgg-jv7q)、
+  [fast-uri](https://github.com/advisories/GHSA-hrr3-gc8f-f4qj)。
 - global-shortcut `2.3.2`：
   [插件 crate](https://docs.rs/tauri-plugin-global-shortcut/latest/tauri_plugin_global_shortcut/)、
   [官方快捷键指南](https://v2.tauri.app/plugin/global-shortcut/)。

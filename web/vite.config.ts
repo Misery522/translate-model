@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
-import { createRequire } from 'node:module';
+import { resolve } from 'node:path';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
+import { thirdPartyNotices } from './third-party-notices.ts';
 
 // 构建时生成精确静态白名单；API、用户输入及响应不进入缓存。
 function staticShell() {
@@ -13,19 +13,8 @@ function staticShell() {
     name: 'yijing-static-shell',
     closeBundle() {
       const output = resolve(root, 'dist');
-      const require = createRequire(import.meta.url);
-      const notices = ['react', 'react-dom', 'scheduler', '@tauri-apps/api'].map((name) => {
-        const packagePath = require.resolve(`${name}/package.json`);
-        const metadata = JSON.parse(readFileSync(packagePath, 'utf8')) as { version: string };
-        const filenames =
-          name === '@tauri-apps/api' ? ['LICENSE_MIT', 'LICENSE_APACHE-2.0'] : ['LICENSE'];
-        const license = filenames
-          .map((filename) => readFileSync(resolve(dirname(packagePath), filename), 'utf8'))
-          .join('\n');
-        return `${name} ${metadata.version}\n${'='.repeat(60)}\n${license.trim()}\n`;
-      });
       // 从锁定安装包携带完整许可，不依赖压缩文件中的简短版权注释。
-      writeFileSync(resolve(output, 'THIRD_PARTY_LICENSES.txt'), `${notices.join('\n')}\n`);
+      writeFileSync(resolve(output, 'THIRD_PARTY_LICENSES.txt'), thirdPartyNotices());
       const assets = readdirSync(output, { recursive: true, encoding: 'utf8' })
         .map((path) => path.replaceAll('\\', '/'))
         .filter((path) =>
