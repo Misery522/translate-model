@@ -35,6 +35,7 @@ REQUIRED_SOURCE = {
     "data/glossary.example.json", "docs/ROADMAP.md", "docs/PROJECT_STATUS.md",
     "web/public/pet-icon-192.png", "web/public/pet-icon-512.png",
     "web/public/pet-icon-maskable-512.png", "web/public/apple-touch-icon.png",
+    "web/scripts/pet-icon-maskable-source.svg", "web/scripts/pet-icon-apple-source.svg",
     "docs/REDMI_ACCEPTANCE.md", "docs/NEXT_FEATURE_DESIGN.md",
     "tests/test_publication.py", "tests/test_smoke_model.py",
 }

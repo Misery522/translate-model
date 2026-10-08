@@ -22,6 +22,7 @@ def test_archive_rejects_paths_outside_destination(name):
     "docs/PROJECT_STATUS.md",
     "web/public/pet-icon-192.png", "web/public/pet-icon-512.png",
     "web/public/pet-icon-maskable-512.png", "web/public/apple-touch-icon.png",
+    "web/scripts/pet-icon-maskable-source.svg", "web/scripts/pet-icon-apple-source.svg",
     "docs/REDMI_ACCEPTANCE.md", "docs/NEXT_FEATURE_DESIGN.md",
 ])
 def test_source_archive_requires_offline_test_and_license_inputs(missing):

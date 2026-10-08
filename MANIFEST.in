@@ -27,7 +27,7 @@ include web/vite.config.ts web/index.html web/README.md
 include web/.prettierrc.json web/.prettierignore
 recursive-include web/src *.ts *.tsx *.js *.css
 recursive-include web/public *.svg *.webmanifest *.png
-recursive-include web/scripts *.mjs
+recursive-include web/scripts *.mjs *.svg
 recursive-include docs *.md
 recursive-include .github *.yml *.md
 global-exclude __pycache__ *.py[cod] *.log
