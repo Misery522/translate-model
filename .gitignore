@@ -51,6 +51,7 @@ coverage/
 target/
 .gradle/
 local.properties
+mobile/android/app/src/main/assets/public/
 *.apk
 *.aab
 *.msi

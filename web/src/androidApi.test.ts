@@ -6,7 +6,7 @@ import type { AndroidBridgeCommand } from './androidProtocol';
 import type { Job, TranslationRequest } from './types';
 import { useTranslator } from './useTranslator';
 
-// 这里仅模拟尚未实现的原生协议，不是 APK、Java 宿主或手机验收。
+// 这里仅模拟原生协议，不能代替 Java 网络、APK 或手机验收。
 const origin = 'https://computer.private-tailnet.ts.net';
 const sessionId = '11111111-1111-4111-8111-111111111111';
 const requestId = '22222222-2222-4222-8222-222222222222';
@@ -56,6 +56,40 @@ async function fixture() {
   await api.backendStatus();
   return { invoke, api };
 }
+
+describe('原生身份失效后的恢复', () => {
+  it('401 推进宿主代次后，首次手动重新配对先读新状态', async () => {
+    const { api, invoke } = await fixture();
+    invoke.mockRejectedValueOnce({ code: 'ACCESS_DENIED', status: 401 });
+    await expect(api.auth()).rejects.toMatchObject({ status: 401 });
+    invoke.mockResolvedValueOnce({ ...status, paired: false, generation: 11 });
+    invoke.mockResolvedValueOnce(response(auth, 201, 12));
+    await expect(api.pair('ABCDEFG23457')).resolves.toEqual(auth);
+    expect(invoke.mock.calls.at(-2)?.[0]).toEqual({ command: 'backend_status' });
+    expect(invoke.mock.calls.at(-1)?.[0]).toMatchObject({ generation: 11 });
+  });
+
+  it('注销未确认后，主动重新连接读状态并返回配对提示，不自动重发注销', async () => {
+    const { api, invoke } = await fixture();
+    invoke.mockRejectedValueOnce({ code: 'NETWORK_UNCONFIRMED', retryable: true });
+    await expect(api.logout(null)).rejects.toMatchObject({
+      problem: { code: 'NETWORK_UNCONFIRMED' },
+    });
+    invoke.mockResolvedValueOnce({ ...status, paired: false, generation: 11 });
+    invoke.mockRejectedValueOnce({ code: 'PAIRING_REQUIRED', status: 401 });
+    await expect(api.auth()).rejects.toMatchObject({ status: 401 });
+    expect(invoke.mock.calls.at(-2)?.[0]).toEqual({ command: 'backend_status' });
+    expect(invoke.mock.calls.at(-1)?.[0]).toMatchObject({
+      generation: 11,
+      request: { operation: 'auth' },
+    });
+    expect(
+      invoke.mock.calls.filter(
+        ([command]) => command.command === 'api_request' && command.request.operation === 'logout',
+      ),
+    ).toHaveLength(1);
+  });
+});
 
 describe('已确认终态任务的有界回收', () => {
   const uuid = (index: number) => `aaaaaaaa-aaaa-4aaa-8aaa-${index.toString(16).padStart(12, '0')}`;

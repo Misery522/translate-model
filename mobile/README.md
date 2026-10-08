@@ -1,9 +1,13 @@
-# Android 客户端基础（尚无可安装 APK）
+# Android 私人文字客户端（内部 Alpha）
 
-此目录记录 Android 首版的协议和安全边界。目前只实现了共享 TypeScript
-传输接口、Android 协议验证和模拟适配器测试；**没有 Capacitor 运行时、Java
-宿主、Android 工程或 APK**。普通网页入口及 PWA worker 注册行为没有改变。
-模拟桥接测试不是 Redmi K70 真机验收，也不代表手机离线模型或语音已经可用。
+此目录包含本地 React 页面、受限原生 WebView 宿主、Java 安全核心和 Android
+工程，已能生成私人 debug APK。**手机安装与真机验收尚未完成，不是正式发布版。**
+普通网页入口及 PWA worker 行为不变；模拟、JVM 单测和 APK 编译不能代替真机。
+模型仍在电脑运行，语音、离线推理和系统悬浮宠物均未实现。
+
+经用户确认，不引入 Capacitor/Cordova 运行时：其默认通用 HTTP/Cookie 桥没有
+完整的官方关闭开关。使用 AndroidX WebKit 1.14.0 的唯一来源受限消息桥，
+不反射修补依赖，也不降级到旧式 JavaScript 接口。
 
 ## 已实现的基础
 
@@ -12,12 +16,15 @@
 - `web/src/androidProtocol.ts`：私人 HTTPS 源和纯数据操作白名单。
 - `web/src/androidApi.ts`：没有令牌字段、JavaScript 网络请求或持久化的原生适配器。
 - `web/src/requestId.ts`：安全 UUID 回退；缺少安全随机源时保留原文并拒绝提交。
+- `mobile/src`：私人地址配置、原生独立入口、消息 ID/容量/超时和迟到结果丢弃。
+- `mobile/android`：真实 Java 白名单、系统 TLS、内存身份及前后台复位。
+- `scripts/run-android-unit-tests.py`：不联网的真实 JVM 单测，总硬限 60 秒。
 
 `App` 和 `useTranslator` 只依赖共享接口。网页仍使用同源 Cookie、内存 CSRF、
 禁止重定向及禁止缓存的 `TranslationApi`；不能以接口支持 null CSRF 为由跳过
 网页写操作的保护。`jobResponse`、`workSessionResponse` 保持统一响应验证。
 
-## 原生宿主必须实现的协议
+## 原生宿主协议
 
 ```ts
 type AndroidBridgeCommand =
@@ -42,7 +49,7 @@ Shell、文件读写或网络下载操作。Java 必须重复校验所有参数�
 - 宿主必须在请求发起和结束时验证代次，旧响应不能重新保存令牌。
 - pair 的 Java 网络响应可包含 Bearer，但 **在发送桥接消息前必须删除令牌和
   token_type**。JS 只接收 device_id、device_name、expires_at、auth_mode、csrf_token。
-- TS 拒绝违反此契约的响应；这一防线不能代替尚未实现的 Java 端令牌隔离。
+- TS 和 Java 双重验证；令牌隔离由真实 Java 宿主执行，不只依赖模拟桥。
 - 配对失败后连接代次未知；用户再次提交时先读回宿主状态，不自动重发旧配对码。
 - 取消 JavaScript 等待不能证明服务端停止；必须使用 cancel/delete_session，
   断线或进程被杀时由服务端 TTL 最终回收。
@@ -57,9 +64,9 @@ Shell、文件读写或网络下载操作。Java 必须重复校验所有参数�
 不得返回给调用方；删除或淘汰后的回包不能重建绑定。此上限不是原生网络并发
 控制：取消或超时可能只结束 JS 等待，Java 必须另行实现网络资源与响应容量限制。
 
-## 后续 Android 实现不得放宽的约束
+## 不得放宽的约束
 
-1. APK 内置本地静态 React 资源，不使用 `server.url` 加载远程 UI；Android
+1. APK 内置本地静态 React 资源，入口 `https://localhost/app/index.html`；Android
    独立入口不注册 PWA service worker，不引入 Tauri 或复制 Rust 窗口控制。
 2. 只连接用户明确配置的精确私人 Serve HTTPS origin。初版只接受
    `https://设备名.私人网络名.ts.net`；允许规范化默认 443，拒绝非标准端口、
@@ -78,33 +85,42 @@ Shell、文件读写或网络下载操作。Java 必须重复校验所有参数�
 
 ## 开发和验收顺序
 
-共享协议基础与本机构建环境已完成；不代表 App 已交付。经用户确认补齐
+共享协议、构建环境和原生源码已完成；不代表真机和正式 App 已交付。经用户确认补齐
 JDK 21.0.12.1+1、SDK Platform 36（修订 2）、命令行工具 22.0、Gradle 8.14.3，
 已有 Build Tools 36.0.0 未重装。真实 AGP 8.13.0 Android Java 编译探针通过，
 输出 Java 21 `.class`，没有 APK。全局环境变量、API 37、Studio JBR 和原模板保持不变。
 详见 [项目环境启动器](../docs/ANDROID_ENVIRONMENT.md)。
 
 Windows AGP 不接受中文工程根路径；正式原生工程将使用英文路径 Git worktree，
-不移动现有仓库或绕过路径检查。接下来锁定 Capacitor 稳定依赖及许可证，加入
-Java 宿主和本地 Android 页面，执行静态检查、Java 单测和 CI 构建；无需 NDK/CMake。
+不移动现有仓库或绕过路径检查。原生宿主已锁定 WebKit 及传递依赖，校验元数据
+与完整许可证随源码保存；无需 NDK/CMake。工作目录为独立英文路径 worktree。
 
-之后才生成私人 debug APK、安装到 Redmi K70，检查系统/WebView 版本、配对、
+私人 debug APK 在构建、lint、权限和许可验证通过后才用于安装到 Redmi K70，检查系统/WebView 版本、配对、
 实际译文、取消/清空竞态、返回键、前后台、切网、电脑离线、重启和权限边界。
 没有 USB 也可手工安装 APK；USB 调试仅用于真机日志和自动验收，须用户授权。
 
 ```powershell
 npm --prefix web ci --ignore-scripts
 npm --prefix web test
-npm --prefix web run typecheck
-npm --prefix web run build
+npm --prefix mobile test
+npm --prefix mobile run build
+.\.venv\Scripts\python.exe scripts/run-android-unit-tests.py --jdk-home '固定 JDK 路径'
+./scripts/android-env.ps1 -Mode gradle -ToolArguments @('-p', 'mobile/android', ':app:assembleDebug', ':app:lintDebug')
 ```
 
 测试入口有 60 秒硬上限。构建只在此隔离工作树进行，不覆盖当前试用服务的 dist。
 手机有独立图标和窗口，但首版推理仍在电脑：电脑、Ollama、私人 API 和 Tailscale
 需要在线。语音、持久设备身份、独立手机模型和系统悬浮宠物各自单独设计验收。
 
-官方依据：[Capacitor Android](https://capacitorjs.com/docs/android)、
-[配置安全边界](https://capacitorjs.com/docs/config)、
-[原生插件](https://capacitorjs.com/docs/android/custom-code)、
-[固定版本模板](https://github.com/ionic-team/capacitor/tree/8.5.3/android-template)、
+构建产物：`mobile/android/app/build/outputs/apk/debug/app-debug.apk`。
+这是 Android 自动使用调试证书签名的内部 APK，不是正式签名、商店发布或公开分发。
+APK、调试证书、SDK、缓存和模型不提交 GitHub；CI 不上传 APK。
+Gradle 校验文件记录首次受信下载的摘要，不等于独立安全审计或完整作者签名验证。
+
+安装操作与验收清单见 [Android 试用与下一步](../docs/ANDROID_NATIVE.md)。
+完整原生许可见 [第三方署名](THIRD_PARTY_ANDROID_NOTICES.md)，前端 MIT 在构建时生成。
+
+官方依据：[本地资源宿主](https://developer.android.com/develop/ui/views/layout/webapps/load-local-content)、
+[原生桥安全](https://developer.android.com/privacy-and-security/risks/insecure-webview-native-bridges)、
+[WebKit 1.14.0](https://developer.android.com/jetpack/androidx/releases/webkit#1.14.0)、
 [Vite 兼容范围](https://vite.dev/guide/build.html)。

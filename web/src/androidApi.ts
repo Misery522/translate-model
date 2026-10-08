@@ -230,7 +230,18 @@ export class AndroidTranslationApi implements TranslatorTransport {
     const request = validateAndroidOperation(input);
     const generation = this.requireGeneration();
     const epoch = this.epoch;
-    const value = await this.call({ command: 'api_request', generation, request }, epoch, signal);
+    let value: unknown;
+    try {
+      value = await this.call({ command: 'api_request', generation, request }, epoch, signal);
+    } catch (error) {
+      // Java 在 401 时撤销身份并推进代次；下次用户主动配对先读新状态，
+      // 不用旧代次消耗新配对码，也不能让旧错误破坏新连接。
+      if (this.epoch === epoch && error instanceof ApiError && error.status === 401) {
+        this.generation = null;
+        this.clearTracking();
+      }
+      throw error;
+    }
     if (this.epoch !== epoch) throw stale();
     if (
       !isRecord(value) ||
@@ -298,6 +309,8 @@ export class AndroidTranslationApi implements TranslatorTransport {
     return { status: 'ok' as const, api_version: '1' as const };
   }
   async auth(signal?: AbortSignal) {
+    // 只读取状态，不重发配对码或注销；用于未知注销结果后的主动重新连接。
+    if (this.generation === null) await this.backendStatus(signal);
     const epoch = this.epoch;
     const value = await this.request({ operation: 'auth' }, 200, signal);
     if (this.epoch !== epoch) throw stale();
