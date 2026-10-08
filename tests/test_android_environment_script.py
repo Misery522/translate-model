@@ -17,7 +17,8 @@ import pytest
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "android-env.ps1"
 PHASE_PATTERN = re.compile(
     r"(?:android-probe phase=(?:entered|dot-source-begin|dot-source-ready|"
-    r"location-begin|location-ready|fixture-ready|child-call-begin|child-call-ready)|"
+    r"location-begin|location-ready|fixture-ready|child-call-begin|child-call-ready|"
+    r"body-begin|body-finished|result-write-begin|result-write-ready)|"
     r"android-process phase=(?:start-info-begin|start-info-ready|child-start-begin|"
     r"child-started|child-wait-begin|child-exited|timed-out|output-completed|disposed))"
     r" elapsed_ms=\d+"
@@ -51,7 +52,8 @@ def run_probe(source: str, *, timeout: float = 10) -> subprocess.CompletedProces
         "Write-AndroidProbePhase 'dot-source-begin';"
         f". {powershell_literal(str(SCRIPT))};"
         "Write-AndroidProbePhase 'dot-source-ready';"
-        f"{source}"
+        "Write-AndroidProbePhase 'body-begin';"
+        f"try {{ {source} }} finally {{ Write-AndroidProbePhase 'body-finished' }}"
     )
     started = time.monotonic()
     print("android-probe phase=launch-begin elapsed_ms=0", file=sys.stderr, flush=True)
@@ -64,7 +66,9 @@ def run_probe(source: str, *, timeout: float = 10) -> subprocess.CompletedProces
             encoding="utf-8",
             timeout=timeout,
             check=False,
-            env={**os.environ, "PYTHONUTF8": "1"},
+            # 官方要求在 PowerShell 启动前退出遥测；只隔离fixture子进程，
+            # 不让测试依赖无关 SDK/标识缓存初始化，也不修改父进程或生产配置。
+            env={**os.environ, "PYTHONUTF8": "1", "POWERSHELL_TELEMETRY_OPTOUT": "1"},
             creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
         )
     except subprocess.TimeoutExpired as error:
@@ -230,6 +234,50 @@ def test_probe_phase_filter_ignores_tool_output_and_partial_lines() -> None:
     ]
 
 
+def test_probe_telemetry_optout_is_child_only_and_preserves_parent_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("POWERSHELL_TELEMETRY_OPTOUT", "parent-value")
+    monkeypatch.setenv("PYTHONUTF8", "parent-utf8-value")
+    monkeypatch.setattr(shutil, "which", lambda _name: "fixture-pwsh")
+    parent_environment = dict(os.environ)
+    recorded: dict[str, object] = {}
+
+    def complete(args: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        recorded.update(kwargs)
+        return subprocess.CompletedProcess(args, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", complete)
+    result = run_probe("exit 0")
+    assert result.returncode == 0
+    assert recorded["timeout"] == 10
+    child_environment = recorded["env"]
+    assert isinstance(child_environment, dict)
+    assert child_environment["POWERSHELL_TELEMETRY_OPTOUT"] == "1"
+    assert child_environment["PYTHONUTF8"] == "1"
+    assert child_environment == {
+        **parent_environment,
+        "PYTHONUTF8": "1",
+        "POWERSHELL_TELEMETRY_OPTOUT": "1",
+    }
+    assert dict(os.environ) == parent_environment
+
+
+@pytest.mark.parametrize(
+    "source,expected_exit",
+    [("exit 7", 7), ("throw 'controlled fixture failure'", 1)],
+)
+def test_probe_finally_records_completion_without_masking_exit_or_failure(
+    source: str, expected_exit: int
+) -> None:
+    result = run_probe(source)
+    assert result.returncode == expected_exit, result.stderr
+    phases = probe_phase_lines(result.stderr)
+    assert any("phase=body-begin " in phase for phase in phases)
+    assert any("phase=body-finished " in phase for phase in phases)
+    assert result.stdout == ""
+
+
 @pytest.mark.parametrize(
     "argument",
     [
@@ -247,7 +295,8 @@ def test_probe_phase_filter_ignores_tool_output_and_partial_lines() -> None:
 def test_gradle_cannot_override_fixed_runtime_controls(argument: str) -> None:
     result = run_probe(
         f"try {{ Get-AndroidJavaArguments gradle @{{}} @({powershell_literal(argument)}) }} "
-        "catch { Write-Output 'rejected'; exit 0 }; exit 4"
+        "catch { Write-AndroidProbePhase 'result-write-begin'; Write-Output 'rejected'; "
+        "Write-AndroidProbePhase 'result-write-ready'; exit 0 }; exit 4"
     )
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == "rejected"
