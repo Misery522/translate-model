@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { TranslationApi } from './api';
+import type { TranslatorTransport } from './translatorTransport';
 import { Pet } from './Pet';
 import type { AgentResult, Options, Turn } from './types';
 import { characterCount, useTranslator } from './useTranslator';
@@ -264,7 +264,7 @@ function ConversationTurn({
   );
 }
 
-export default function App({ api }: { api?: TranslationApi }) {
+export default function App({ api }: { api?: TranslatorTransport }) {
   const app = useTranslator(api);
   const [pairCode, setPairCode] = useState('');
   const count = characterCount(app.draft);
